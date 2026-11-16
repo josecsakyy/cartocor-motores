@@ -12,6 +12,13 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
         body { font-family: 'Inter', sans-serif; }
+        .blueprint-grid {
+            background-color: #0f172a;
+            background-image: 
+                linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 h-full overflow-x-hidden">
@@ -32,12 +39,12 @@
         const { useState, useEffect, useMemo } = React;
 
         const INITIAL_MOTORS = [
-            { id: '1', tag: 'MOT-001', power: '15 HP', rpm: '1450', flange: 'Con brida', location: 'Sala de Máquina', condition: 'En funcionamiento', description: 'Bomba principal de vacío - Máquina de Papel', x: 50, y: 35, rack: '', floor: '', pallet: '' },
-            { id: '2', tag: 'MOT-002', power: '7.5 HP', rpm: '2900', flange: 'Sin brida', location: 'Depósito', condition: 'Esperando repuesto', description: 'Motor de repuesto para sección húmeda (Falta rodamiento)', x: 20, y: 30, rack: 'Rack 1', floor: 'Piso 1', pallet: 'Tarima 1' },
-            { id: '3', tag: 'MOT-003', power: '30 HP', rpm: '980', flange: 'Con brida', location: 'Planta Sector A', condition: 'En reparación', description: 'Ventilador de tiro forzado sector hornos', x: 75, y: 70, rack: '', floor: '', pallet: '' },
-            { id: '4', tag: 'MOT-004', power: '5 HP', rpm: '1450', flange: 'Sin brida', location: 'Depósito', condition: 'En funcionamiento', description: 'Stock disponible en estantería central', x: 15, y: 65, rack: 'Rack 1', floor: 'Piso 1', pallet: 'Tarima 2' },
+            { id: '1', tag: 'MOT-001', power: '15 HP', rpm: '1450', flange: 'Con brida', location: 'Sala de Máquina', condition: 'En funcionamiento', description: 'Bomba principal de vacío - Máquina de Papel', x: 65, y: 35, rack: '', floor: '', pallet: '' },
+            { id: '2', tag: 'MOT-002', power: '7.5 HP', rpm: '2900', flange: 'Sin brida', location: 'Depósito', condition: 'Esperando repuesto', description: 'Motor de repuesto para sección húmeda (Falta rodamiento)', x: 25, y: 30, rack: 'Rack 1', floor: 'Piso 1', pallet: 'Tarima 1' },
+            { id: '3', tag: 'MOT-003', power: '30 HP', rpm: '980', flange: 'Con brida', location: 'Planta Sector A', condition: 'En reparación', description: 'Ventilador de tiro forzado sector hornos', x: 70, y: 75, rack: '', floor: '', pallet: '' },
+            { id: '4', tag: 'MOT-004', power: '5 HP', rpm: '1450', flange: 'Sin brida', location: 'Depósito', condition: 'En funcionamiento', description: 'Stock disponible en estantería central A-3', x: 18, y: 65, rack: 'Rack 1', floor: 'Piso 1', pallet: 'Tarima 2' },
             { id: '5', tag: 'MOT-005', power: '20 HP', rpm: '1450', flange: 'Con brida', location: 'Taller de Mantenimiento', condition: 'Retirado', description: 'Motor antiguo dado de baja por obsolescencia', x: 35, y: 80, rack: '', floor: '', pallet: '' },
-            { id: '6', tag: 'MOT-006', power: '10 HP', rpm: '2900', flange: 'Con brida', location: 'Depósito', condition: 'En funcionamiento', description: 'Motor de respaldo general', x: 25, y: 45, rack: 'Rack 2', floor: 'Piso 3', pallet: 'Tarima 1' }
+            { id: '6', tag: 'MOT-006', power: '10 HP', rpm: '2900', flange: 'Con brida', location: 'Depósito', condition: 'En funcionamiento', description: 'Compresor de instrumentación auxiliar', x: 55, y: 55, rack: 'Rack 2', floor: 'Piso 3', pallet: 'Tarima 1' }
         ];
 
         const CONDITION_COLORS = {
@@ -287,7 +294,7 @@
                                         {isFirebaseConnected ? 'Nube Sincronizada' : 'Modo Local'}
                                     </span>
                                 </div>
-                                <h1 className="text-sm font-black text-slate-900">Gestión de Motores y Control de Depósito (Racks)</h1>
+                                <h1 className="text-sm font-black text-slate-900">Gestión de Motores y Depósito de Racks</h1>
                             </div>
                         </div>
 
@@ -348,7 +355,7 @@
                                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'plan' ? 'bg-slate-900 text-white shadow' : 'text-slate-600 hover:text-slate-900'}`}
                             >
                                 <i data-lucide="map" className="w-4 h-4"></i>
-                                Plano Planta
+                                Plano Lay Out Interactivo
                             </button>
                         </div>
 
@@ -616,9 +623,9 @@
                         <div>
                             <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
                                 <i data-lucide="box" className="w-5 h-5 text-[#78BC1B]"></i>
-                                Control de Racks del Depósito (4 Racks x 3 Pisos x 2 Tarimas)
+                                Esquema del Depósito de Motores (4 Racks x 3 Pisos x 2 Tarimas)
                             </h2>
-                            <p className="text-xs text-slate-500 mt-1">Cada tarima puede almacenar uno o más motores. Haz clic en un motor para editar su ubicación.</p>
+                            <p className="text-xs text-slate-500 mt-1">Cada tarima puede almacenar múltiples motores. Haz clic en cualquier motor para ver o editar su ubicación exacta.</p>
                         </div>
                         <div className="flex items-center gap-3 text-xs bg-slate-100 px-3 py-2 rounded-xl border border-slate-200">
                             <span className="font-semibold text-slate-700">Total en Depósito:</span>
@@ -728,9 +735,9 @@
                         <div>
                             <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
                                 <i data-lucide="map-pin" className="w-4 h-4" style={{ color: '#78BC1B' }}></i>
-                                Lay Out Operativo - Cartocor Arroyito
+                                Lay Out Operativo - Cartocor Arroyito (Plano Oficial)
                             </h2>
-                            <p className="text-xs text-slate-500">Arrastra los pines sobre el predio o haz clic para ver su ficha</p>
+                            <p className="text-xs text-slate-500">Arrastra los pines sobre el predio o haz clic para ver y editar su ficha</p>
                         </div>
 
                         <div className="flex items-center gap-3">
@@ -748,26 +755,29 @@
                                     <option value="Taller de Mantenimiento">Taller de Mantenimiento</option>
                                 </select>
                             </div>
+
+                            <div className="hidden lg:flex items-center gap-3 text-xs bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl">
+                                <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#78BC1B' }}></span><span className="text-slate-700">Funcionando</span></div>
+                                <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span><span className="text-slate-700">Esperando repuesto</span></div>
+                                <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-orange-500"></span><span className="text-slate-700">En reparación</span></div>
+                                <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-slate-500"></span><span className="text-slate-700">Retirado</span></div>
+                            </div>
                         </div>
                     </div>
 
                     <div 
-                        className="flex-1 bg-slate-900 border border-slate-300 rounded-2xl relative overflow-hidden shadow-inner flex items-center justify-center select-none min-h-[600px]"
+                        className="blueprint-grid flex-1 border border-slate-300 rounded-2xl relative overflow-hidden shadow-inner flex items-center justify-center select-none min-h-[600px]"
                         onDragOver={handleDragOver}
                         onDrop={handleDrop}
                     >
-                        <div className="absolute inset-0 opacity-15 pointer-events-none grid grid-cols-2 grid-rows-2">
-                            <div className="border-r border-b border-slate-400 p-6 flex flex-col justify-between">
-                                <span className="text-base font-black tracking-widest text-white uppercase">DEPÓSITO / RACKS</span>
+                        <div className="absolute inset-0 p-6 flex flex-col justify-between pointer-events-none opacity-40">
+                            <div className="flex justify-between items-center border-b-2 border-dashed border-slate-400 pb-4">
+                                <div className="border-2 border-slate-400 p-4 rounded-xl w-[45%] bg-slate-800/10 text-center font-black text-slate-700 text-sm tracking-wider">DEPÓSITO / RACKS</div>
+                                <div className="border-2 border-slate-400 p-4 rounded-xl w-[45%] bg-slate-800/10 text-center font-black text-slate-700 text-sm tracking-wider">SALA DE MÁQUINA PAPEL</div>
                             </div>
-                            <div className="border-b border-slate-400 p-6 flex flex-col justify-between">
-                                <span className="text-base font-black tracking-widest text-white uppercase">SALA DE MÁQUINA PAPEL</span>
-                            </div>
-                            <div className="border-r border-slate-400 p-6 flex flex-col justify-between">
-                                <span className="text-base font-black tracking-widest text-white uppercase">TALLER DE MANTENIMIENTO</span>
-                            </div>
-                            <div className="p-6 flex flex-col justify-between">
-                                <span className="text-base font-black tracking-widest text-white uppercase">PLANTA SECTOR A</span>
+                            <div className="flex justify-between items-center pt-4">
+                                <div className="border-2 border-slate-400 p-4 rounded-xl w-[45%] bg-slate-800/10 text-center font-black text-slate-700 text-sm tracking-wider">TALLER DE MANTENIMIENTO</div>
+                                <div className="border-2 border-slate-400 p-4 rounded-xl w-[45%] bg-slate-800/10 text-center font-black text-slate-700 text-sm tracking-wider">PLANTA SECTOR A</div>
                             </div>
                         </div>
 
@@ -783,7 +793,7 @@
                                     style={{ left: `${motor.x}%`, top: `${motor.y}%` }}
                                     className="absolute -translate-x-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing transition-transform hover:scale-125 z-20 group"
                                 >
-                                    <div className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-xl shadow-lg border backdrop-blur-md transition-all ${isSelected ? 'ring-2 ring-emerald-400 scale-110 bg-slate-900 text-white' : 'bg-white text-slate-900'} ${condStyle.border}`}>
+                                    <div className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-xl shadow-lg border backdrop-blur-md transition-all ${isSelected ? 'ring-2 ring-emerald-500 scale-110 bg-slate-900 text-white' : 'bg-white text-slate-900'} ${condStyle.border}`}>
                                         <span className="w-3 h-3 rounded-full animate-pulse shadow-sm" style={{ backgroundColor: condStyle.hex }}></span>
                                         <span className="font-mono font-bold text-xs">{motor.tag}</span>
                                         <span className="text-[10px] text-slate-500 hidden sm:inline">({motor.power})</span>
@@ -832,15 +842,6 @@
                                         </select>
                                     </div>
 
-                                    {selectedMotor.location === 'Depósito' && (
-                                        <div className="bg-emerald-50 p-2.5 rounded-xl border border-emerald-200">
-                                            <span className="font-bold text-emerald-900 block mb-1">Posición en Depósito:</span>
-                                            <span className="text-emerald-800 font-medium">
-                                                {selectedMotor.rack || 'Rack 1'} / {selectedMotor.floor || 'Piso 1'} / {selectedMotor.pallet || 'Tarima 1'}
-                                            </span>
-                                        </div>
-                                    )}
-
                                     <div className="flex justify-between items-center">
                                         <span className="text-slate-500">Condición:</span>
                                         <select 
@@ -857,6 +858,11 @@
                                             <option value="En reparación">En reparación</option>
                                             <option value="Retirado">Retirado</option>
                                         </select>
+                                    </div>
+
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-slate-500">Carcasa:</span>
+                                        <span className="font-semibold text-slate-900">{selectedMotor.flange}</span>
                                     </div>
                                 </div>
 
@@ -974,7 +980,7 @@
                                 <div className="bg-emerald-50/60 border border-emerald-200 p-4 rounded-2xl space-y-3">
                                     <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-900 flex items-center gap-1.5">
                                         <i data-lucide="box" className="w-4 h-4 text-[#78BC1B]"></i>
-                                        Ubicación Exacta en Depósito (Racks)
+                                        Ubicación en Racks del Depósito
                                     </h4>
                                     <div className="grid grid-cols-3 gap-3">
                                         <div>
@@ -1049,7 +1055,7 @@
             );
         }
 
-        ReactDOM.createRoot(getElementById ? document.getElementById('root') : document.getElementById('root')).render(<App />);
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
     </script>
 </body>
 </html>
