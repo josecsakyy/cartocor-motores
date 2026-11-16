@@ -12,13 +12,6 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
         body { font-family: 'Inter', sans-serif; }
-        .blueprint-grid {
-            background-color: #0f172a;
-            background-image: 
-                linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-                linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-            background-size: 40px 40px;
-        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 h-full overflow-x-hidden">
@@ -39,12 +32,12 @@
         const { useState, useEffect, useMemo } = React;
 
         const INITIAL_MOTORS = [
-            { id: '1', tag: 'MOT-001', power: '15 HP', rpm: '1450', flange: 'Con brida', location: 'Sala de Máquina', condition: 'En funcionamiento', description: 'Bomba principal de vacío - Máquina de Papel', x: 65, y: 35 },
-            { id: '2', tag: 'MOT-002', power: '7.5 HP', rpm: '2900', flange: 'Sin brida', location: 'Depósito', condition: 'Esperando repuesto', description: 'Motor de repuesto para sección húmeda (Falta rodamiento)', x: 25, y: 30 },
-            { id: '3', tag: 'MOT-003', power: '30 HP', rpm: '980', flange: 'Con brida', location: 'Planta Sector A', condition: 'En reparación', description: 'Ventilador de tiro forzado sector hornos', x: 70, y: 75 },
-            { id: '4', tag: 'MOT-004', power: '5 HP', rpm: '1450', flange: 'Sin brida', location: 'Depósito', condition: 'En funcionamiento', description: 'Stock disponible en estantería central A-3', x: 18, y: 65 },
+            { id: '1', tag: 'MOT-001', power: '15 HP', rpm: '1450', flange: 'Con brida', location: 'Sala de Máquina', condition: 'En funcionamiento', description: 'Bomba principal de vacío - Máquina de Papel', x: 50, y: 35 },
+            { id: '2', tag: 'MOT-002', power: '7.5 HP', rpm: '2900', flange: 'Sin brida', location: 'Depósito', condition: 'Esperando repuesto', description: 'Motor de repuesto para sección húmeda (Falta rodamiento)', x: 20, y: 30 },
+            { id: '3', tag: 'MOT-003', power: '30 HP', rpm: '980', flange: 'Con brida', location: 'Planta Sector A', condition: 'En reparación', description: 'Ventilador de tiro forzado sector hornos', x: 75, y: 70 },
+            { id: '4', tag: 'MOT-004', power: '5 HP', rpm: '1450', flange: 'Sin brida', location: 'Depósito', condition: 'En funcionamiento', description: 'Stock disponible en estantería central A-3', x: 15, y: 65 },
             { id: '5', tag: 'MOT-005', power: '20 HP', rpm: '1450', flange: 'Con brida', location: 'Taller de Mantenimiento', condition: 'Retirado', description: 'Motor antiguo dado de baja por obsolescencia', x: 35, y: 80 },
-            { id: '6', tag: 'MOT-006', power: '10 HP', rpm: '2900', flange: 'Con brida', location: 'Sala de Máquina', condition: 'En funcionamiento', description: 'Compresor de instrumentación auxiliar', x: 55, y: 55 }
+            { id: '6', tag: 'MOT-006', power: '10 HP', rpm: '2900', flange: 'Con brida', location: 'Sala de Máquina', condition: 'En funcionamiento', description: 'Compresor de instrumentación auxiliar', x: 60, y: 55 }
         ];
 
         const CONDITION_COLORS = {
@@ -583,6 +576,7 @@
             const [selectedMotor, setSelectedMotor] = useState(null);
             const [draggingId, setDraggingId] = useState(null);
             const [planFilter, setPlanFilter] = useState('Todos');
+            const [blueprintImage, setBlueprintImage] = useState(() => localStorage.getItem('cartocor_blueprint') || null);
 
             const handleDragOver = (e) => { e.preventDefault(); };
 
@@ -606,10 +600,33 @@
                                 <i data-lucide="map-pin" className="w-4 h-4" style={{ color: '#78BC1B' }}></i>
                                 Lay Out Operativo - Cartocor Arroyito (Plano Nº 01-03-000-19 03)
                             </h2>
-                            <p className="text-xs text-slate-500">Arrastra los pines para ubicarlos sobre el plano técnico o haz clic para ver y editar su ficha</p>
+                            <p className="text-xs text-slate-500">Sube la imagen de tu plano y arrastra los pines sobre las áreas correspondientes</p>
                         </div>
 
-                        <div className="flex items-center gap-3">
+                        <div className="flex flex-wrap items-center gap-3">
+                            {/* Botón directo para cargar el plano de fondo */}
+                            <label className="cursor-pointer bg-slate-900 hover:bg-slate-800 text-white px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 shadow-sm transition-all">
+                                <i data-lucide="image" className="w-4 h-4 text-[#78BC1B]"></i>
+                                Cargar Imagen de Plano
+                                <input 
+                                    type="file" 
+                                    accept="image/*" 
+                                    className="hidden" 
+                                    onChange={(e) => {
+                                        const file = e.target.files[0];
+                                        if (file) {
+                                            const reader = new FileReader();
+                                            reader.onload = (uploadEvent) => {
+                                                const res = uploadEvent.target.result;
+                                                setBlueprintImage(res);
+                                                localStorage.setItem('cartocor_blueprint', res);
+                                            };
+                                            reader.readAsDataURL(file);
+                                        }
+                                    }} 
+                                />
+                            </label>
+
                             <div className="flex items-center gap-2 text-xs">
                                 <span className="text-slate-600 font-medium">Filtrar Sector:</span>
                                 <select 
@@ -635,21 +652,29 @@
                     </div>
 
                     <div 
-                        className="blueprint-grid flex-1 border border-slate-300 rounded-2xl relative overflow-hidden shadow-inner flex items-center justify-center select-none min-h-[600px]"
+                        className="flex-1 border border-slate-300 rounded-2xl relative overflow-hidden shadow-inner flex items-center justify-center select-none min-h-[600px]"
+                        style={{
+                            backgroundColor: blueprintImage ? '#0f172a' : '#f8fafc',
+                            backgroundImage: blueprintImage ? `url(${blueprintImage})` : 'radial-gradient(#cbd5e1 1px, transparent 1px)',
+                            backgroundSize: blueprintImage ? 'contain' : '32px 32px',
+                            backgroundPosition: 'center',
+                            backgroundRepeat: 'no-repeat'
+                        }}
                         onDragOver={handleDragOver}
                         onDrop={handleDrop}
                     >
-                        {/* Plano técnico interactivo estilizado directamente con SVG profesional de la planta Cartocor Arroyito */}
-                        <div className="absolute inset-0 p-6 flex flex-col justify-between pointer-events-none opacity-40">
-                            <div className="flex justify-between items-center border-b-2 border-dashed border-slate-400 pb-4">
-                                <div className="border-2 border-slate-400 p-4 rounded-xl w-[45%] bg-slate-800/10 text-center font-black text-slate-700 text-sm tracking-wider">DEPÓSITO / PAÑOL (ZONA OESTE)</div>
-                                <div className="border-2 border-slate-400 p-4 rounded-xl w-[45%] bg-slate-800/10 text-center font-black text-slate-700 text-sm tracking-wider">SALA DE MÁQUINA PAPEL (ZONA ESTE)</div>
+                        {!blueprintImage && (
+                            <div className="absolute inset-0 p-6 flex flex-col justify-between pointer-events-none opacity-30">
+                                <div className="flex justify-between items-center border-b-2 border-dashed border-slate-400 pb-4">
+                                    <div className="border-2 border-slate-400 p-4 rounded-xl w-[45%] text-center font-black text-slate-700 text-sm">DEPÓSITO / PAÑOL</div>
+                                    <div className="border-2 border-slate-400 p-4 rounded-xl w-[45%] text-center font-black text-slate-700 text-sm">SALA DE MÁQUINA PAPEL</div>
+                                </div>
+                                <div className="flex justify-between items-center pt-4">
+                                    <div className="border-2 border-slate-400 p-4 rounded-xl w-[45%] text-center font-black text-slate-700 text-sm">TALLER DE MANTENIMIENTO</div>
+                                    <div className="border-2 border-slate-400 p-4 rounded-xl w-[45%] text-center font-black text-slate-700 text-sm">PLANTA SECTOR A</div>
+                                </div>
                             </div>
-                            <div className="flex justify-between items-center pt-4">
-                                <div className="border-2 border-slate-400 p-4 rounded-xl w-[45%] bg-slate-800/10 text-center font-black text-slate-700 text-sm tracking-wider">TALLER DE MANTENIMIENTO</div>
-                                <div className="border-2 border-slate-400 p-4 rounded-xl w-[45%] bg-slate-800/10 text-center font-black text-slate-700 text-sm tracking-wider">PLANTA SECTOR A / HORNOS</div>
-                            </div>
-                        </div>
+                        )}
 
                         {filteredMotors.map((motor) => {
                             const condStyle = CONDITION_COLORS[motor.condition] || CONDITION_COLORS['Retirado'];
@@ -867,7 +892,7 @@
                                 </button>
                                 <button 
                                     type="submit" 
-                                    class="px-5 py-2 rounded-xl text-sm font-semibold bg-slate-900 hover:bg-slate-800 text-white shadow-sm transition-all"
+                                    className="px-5 py-2 rounded-xl text-sm font-semibold bg-slate-900 hover:bg-slate-800 text-white shadow-sm transition-all"
                                 >
                                     {isEditing ? 'Guardar Cambios' : 'Registrar Motor'}
                                 </button>
