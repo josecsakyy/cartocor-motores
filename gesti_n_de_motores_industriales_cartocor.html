@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Motores - Cartocor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 h-full overflow-x-hidden">
+    <div id="root" class="h-full flex flex-col"></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        window.firebaseModules = {
+            initializeApp, getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged,
+            getFirestore, collection, doc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot
+        };
+    </script>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        const INITIAL_MOTORS = [
+            { id: '1', tag: 'MOT-001', power: '15 HP', rpm: '1450', flange: 'Con brida', location: 'Planta', condition: 'En funcionamiento', description: 'Bomba principal de refrigeración línea 1', x: 25, y: 35 },
+            { id: '2', tag: 'MOT-002', power: '7.5 HP', rpm: '2900', flange: 'Sin brida', location: 'Depósito', condition: 'Esperando repuesto', description: 'Motor de repuesto para cinta transportadora B (Falta rodamiento)', x: 75, y: 25 },
+            { id: '3', tag: 'MOT-003', power: '30 HP', rpm: '980', flange: 'Con brida', location: 'Planta', condition: 'En reparación', description: 'Extractor de gases sector hornos', x: 60, y: 70 },
+            { id: '4', tag: 'MOT-004', power: '5 HP', rpm: '1450', flange: 'Sin brida', location: 'Depósito', condition: 'En funcionamiento', description: 'Stock disponible en estantería A-3', x: 85, y: 65 },
+            { id: '5', tag: 'MOT-005', power: '20 HP', rpm: '1450', flange: 'Con brida', location: 'Planta', condition: 'Retirado', description: 'Motor antiguo dado de baja por obsolescencia', x: 40, y: 85 },
+            { id: '6', tag: 'MOT-006', power: '10 HP', rpm: '2900', flange: 'Con brida', location: 'Planta', condition: 'En funcionamiento', description: 'Compresor de aire auxiliar', x: 15, y: 75 }
+        ];
+
+        const CONDITION_COLORS = {
+            'En funcionamiento': { bg: 'bg-emerald-50', text: 'text-emerald-900', border: 'border-emerald-300', badge: 'bg-[#78BC1B]', hex: '#78BC1B' },
+            'Esperando repuesto': { bg: 'bg-amber-50', text: 'text-amber-900', border: 'border-amber-300', badge: 'bg-amber-500', hex: '#d97706' },
+            'En reparación': { bg: 'bg-orange-50', text: 'text-orange-900', border: 'border-orange-300', badge: 'bg-orange-500', hex: '#ea580c' },
+            'Retirado': { bg: 'bg-slate-100', text: 'text-slate-800', border: 'border-slate-300', badge: 'bg-slate-500', hex: '#64748b' }
+        };
+
+        function App() {
+            const [motors, setMotors] = useState([]);
+            const [isFirebaseConnected, setIsFirebaseConnected] = useState(false);
+            const [userId, setUserId] = useState(null);
+            
+            const [activeTab, setActiveTab] = useState('table');
+            const [searchTerm, setSearchTerm] = useState('');
+            const [filterLocation, setFilterLocation] = useState('Todos');
+            const [filterCondition, setFilterCondition] = useState('Todas');
+            
+            const [isModalOpen, setIsModalOpen] = useState(false);
+            const [editingMotor, setEditingMotor] = useState(null);
+            const [formData, setFormData] = useState({
+                tag: '', power: '', rpm: '', flange: 'Con brida', location: 'Depósito', condition: 'En funcionamiento', description: '', x: 50, y: 50
+            });
+
+            const [toast, setToast] = useState(null);
+            const [modalMessage, setModalMessage] = useState(null);
+            const [deleteTargetId, setDeleteTargetId] = useState(null);
+
+            // Inicialización de Firebase con reglas obligatorias y sincronización en tiempo real
+            useEffect(() => {
+                const initFirebase = async () => {
+                    if (!window.firebaseModules) {
+                        setTimeout(initFirebase, 200);
+                        return;
+                    }
+
+                    const { initializeApp, getAuth, signInAnonymously, signInWithCustomToken, getFirestore, collection, onSnapshot, setDoc, doc } = window.firebaseModules;
+                    
+                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'cartocor-motors-default';
+                    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { apiKey: "demo", projectId: "demo" };
+
+                    try {
+                        const app = initializeApp(firebaseConfig);
+                        const db = getFirestore(app);
+                        const auth = getAuth(app);
+
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            await signInWithCustomToken(auth, __initial_auth_token);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+
+                        const currentUser = auth.currentUser;
+                        if (!currentUser) return;
+                        setUserId(currentUser.uid);
+
+                        // Ruta pública obligatoria según reglas
+                        const motorsCollection = collection(db, 'artifacts', appId, 'public', 'data', 'motors_list');
+
+                        // Suscripción en tiempo real con callback de error requerido
+                        const unsubscribe = onSnapshot(motorsCollection, 
+                            async (snapshot) => {
+                                if (snapshot.empty) {
+                                    // Si está vacía por primera vez, cargamos los datos iniciales
+                                    for (const m of INITIAL_MOTORS) {
+                                        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'motors_list', m.id), m);
+                                    }
+                                } else {
+                                    const loadedMotors = [];
+                                    snapshot.forEach(docSnap => {
+                                        loadedMotors.push({ id: docSnap.id, ...docSnap.data() });
+                                    });
+                                    setMotors(loadedMotors);
+                                    setIsFirebaseConnected(true);
+                                }
+                            }, 
+                            (error) => {
+                                console.error("Error en Firebase onSnapshot:", error);
+                                // Fallback a localStorage si falla la red
+                                const saved = localStorage.getItem('cartocor_motors_v3');
+                                setMotors(saved ? JSON.parse(saved) : INITIAL_MOTORS);
+                            }
+                        );
+
+                        return () => unsubscribe();
+                    } catch (e) {
+                        console.error("Error conectando a Firebase, usando modo local:", e);
+                        const saved = localStorage.getItem('cartocor_motors_v3');
+                        setMotors(saved ? JSON.parse(saved) : INITIAL_MOTORS);
+                    }
+                };
+
+                initFirebase();
+            }, []);
+
+            useEffect(() => {
+                if (window.lucide) {
+                    window.lucide.createIcons();
+                }
+            }, [motors, activeTab, isModalOpen, modalMessage, deleteTargetId, isFirebaseConnected]);
+
+            const showToast = (message) => {
+                setToast(message);
+                setTimeout(() => setToast(null), 3000);
+            };
+
+            const stats = useMemo(() => {
+                const total = motors.length;
+                const depotStock = motors.filter(m => m.location === 'Depósito' && m.condition === 'En funcionamiento').length;
+                const inPlant = motors.filter(m => m.location === 'Planta').length;
+                const repairingOrWaiting = motors.filter(m => m.condition === 'En reparación' || m.condition === 'Esperando repuesto').length;
+                return { total, depotStock, inPlant, repairingOrWaiting };
+            }, [motors]);
+
+            const filteredMotors = useMemo(() => {
+                return motors.filter(m => {
+                    const matchesSearch = m.tag.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                          m.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                          m.power.toLowerCase().includes(searchTerm.toLowerCase());
+                    const matchesLoc = filterLocation === 'Todos' || m.location === filterLocation;
+                    const matchesCond = filterCondition === 'Todas' || m.condition === filterCondition;
+                    return matchesSearch && matchesLoc && matchesCond;
+                });
+            }, [motors, searchTerm, filterLocation, filterCondition]);
+
+            const handleOpenAddModal = () => {
+                setEditingMotor(null);
+                setFormData({
+                    tag: `MOT-${String(motors.length + 1).padStart(3, '0')}`,
+                    power: '10 HP',
+                    rpm: '1450',
+                    flange: 'Con brida',
+                    location: 'Depósito',
+                    condition: 'En funcionamiento',
+                    description: '',
+                    x: Math.floor(Math.random() * 60) + 20,
+                    y: Math.floor(Math.random() * 60) + 20
+                });
+                setIsModalOpen(true);
+            };
+
+            const handleOpenEditModal = (motor) => {
+                setEditingMotor(motor);
+                setFormData({ ...motor });
+                setIsModalOpen(true);
+            };
+
+            const confirmDeleteMotor = (id) => {
+                setDeleteTargetId(id);
+            };
+
+            const executeDelete = async () => {
+                if (deleteTargetId) {
+                    try {
+                        if (window.firebaseModules && userId) {
+                            const { getFirestore, doc, deleteDoc } = window.firebaseModules;
+                            const db = getFirestore();
+                            const appId = typeof __app_id !== 'undefined' ? __app_id : 'cartocor-motors-default';
+                            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'motors_list', deleteTargetId));
+                        }
+                    } catch (err) {
+                        console.error("Error al eliminar en nube:", err);
+                    }
+                    setMotors(motors.filter(m => m.id !== deleteTargetId));
+                    setDeleteTargetId(null);
+                    showToast('Motor eliminado correctamente');
+                }
+            };
+
+            const handleSaveMotor = async (e) => {
+                e.preventDefault();
+                if (!formData.tag.trim()) {
+                    setModalMessage('El campo Código / Tag es obligatorio para registrar el motor.');
+                    return;
+                }
+
+                try {
+                    if (window.firebaseModules && userId) {
+                        const { getFirestore, setDoc, doc } = window.firebaseModules;
+                        const db = getFirestore();
+                        const appId = typeof __app_id !== 'undefined' ? __app_id : 'cartocor-motors-default';
+
+                        if (editingMotor) {
+                            const motorRef = doc(db, 'artifacts', appId, 'public', 'data', 'motors_list', editingMotor.id);
+                            await setDoc(motorRef, { ...formData, id: editingMotor.id }, { merge: true });
+                            showToast('Motor actualizado en la nube');
+                        } else {
+                            const newId = Date.now().toString();
+                            const motorRef = doc(db, 'artifacts', appId, 'public', 'data', 'motors_list', newId);
+                            await setDoc(motorRef, { ...formData, id: newId });
+                            showToast('Nuevo motor registrado en la nube');
+                        }
+                    }
+                } catch (err) {
+                    console.error("Error guardando:", err);
+                }
+
+                setIsModalOpen(false);
+            };
+
+            const handleQuickUpdateStatus = async (id, newCondition, newLocation) => {
+                const target = motors.find(m => m.id === id);
+                if (!target) return;
+
+                const updated = {
+                    ...target,
+                    condition: newCondition !== undefined ? newCondition : target.condition,
+                    location: newLocation !== undefined ? newLocation : target.location
+                };
+
+                try {
+                    if (window.firebaseModules && userId) {
+                        const { getFirestore, setDoc, doc } = window.firebaseModules;
+                        const db = getFirestore();
+                        const appId = typeof __app_id !== 'undefined' ? __app_id : 'cartocor-motors-default';
+                        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'motors_list', id), updated, { merge: true });
+                    }
+                } catch (err) {
+                    console.error("Error actualizando estado:", err);
+                }
+
+                setMotors(motors.map(m => m.id === id ? updated : m));
+                showToast('Estado actualizado en tiempo real');
+            };
+
+            return (
+                <div className="flex flex-col h-full bg-slate-50 text-slate-900">
+                    <header className="bg-white border-b border-slate-200 px-6 py-3.5 flex flex-col md:flex-row justify-between items-center gap-4 shadow-sm shrink-0">
+                        <div className="flex items-center gap-4">
+                            <svg viewBox="0 0 280 65" className="h-11 w-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <g transform="translate(2, 2)">
+                                    <path d="M42 8C35 4 25 3 17 8C7 14 2 25 4 37C6 48 15 56 27 57C36 57 44 53 49 48" stroke="#6E6E6E" strokeWidth="6.5" strokeLinecap="round"/>
+                                    <path d="M30 14C35 15 42 20 44 26C46 32 38 38 42 44" stroke="#78BC1B" strokeWidth="5.5" strokeLinecap="round" fill="none"/>
+                                    <path d="M22 18C27 21 34 26 33 33" stroke="#78BC1B" strokeWidth="4.5" strokeLinecap="round" fill="none"/>
+                                </g>
+                                <text x="70" y="42" fontFamily="'Inter', sans-serif" fontWeight="900" fontSize="28" fill="#6E6E6E" letterSpacing="0.5">CARTOCOR</text>
+                            </svg>
+                            <div className="hidden sm:block border-l border-slate-300 pl-4">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Gestión Industrial</span>
+                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${isFirebaseConnected ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}`}>
+                                        <span className={`w-1.5 h-1.5 rounded-full ${isFirebaseConnected ? 'bg-emerald-600 animate-pulse' : 'bg-slate-400'}`}></span>
+                                        {isFirebaseConnected ? 'Nube Sincronizada' : 'Modo Local'}
+                                    </span>
+                                </div>
+                                <h1 className="text-sm font-black text-slate-900">Registro de Motores (Depósito y Planta)</h1>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                            <div className="bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-xl flex items-center gap-2 text-xs">
+                                <span className="w-2.5 h-2.5 rounded-full bg-slate-900"></span>
+                                <span className="text-slate-600 font-medium">Total:</span>
+                                <span className="font-bold text-slate-900">{stats.total}</span>
+                            </div>
+                            <div className="bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-xl flex items-center gap-2 text-xs">
+                                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#78BC1B' }}></span>
+                                <span className="text-slate-600 font-medium">Stock Depósito:</span>
+                                <span className="font-bold text-slate-900">{stats.depotStock}</span>
+                            </div>
+                            <div className="bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-xl flex items-center gap-2 text-xs">
+                                <span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+                                <span className="text-slate-600 font-medium">En Planta:</span>
+                                <span className="font-bold text-slate-900">{stats.inPlant}</span>
+                            </div>
+                        </div>
+                    </header>
+
+                    {(stats.depotStock <= 1 || stats.repairingOrWaiting > 0) && (
+                        <div className="bg-amber-50 border-b border-amber-200 px-6 py-2.5 flex items-center justify-between gap-4 text-xs text-amber-900 shrink-0">
+                            <div className="flex items-center gap-2 font-medium">
+                                <i data-lucide="alert-triangle" className="w-4 h-4 text-amber-600 shrink-0"></i>
+                                <span>
+                                    <strong>Alerta Operativa Cartocor:</strong> {stats.depotStock <= 1 ? 'Stock operativo en depósito bajo (≤ 1 unidad disponible).' : ''} {stats.repairingOrWaiting > 0 ? `${stats.repairingOrWaiting} motor(es) pendientes por reparación o repuesto.` : ''}
+                                </span>
+                            </div>
+                            <button 
+                                onClick={() => { setActiveTab('table'); setFilterCondition('Esperando repuesto'); }}
+                                className="underline font-bold hover:text-amber-950 shrink-0"
+                            >
+                                Ver pendientes
+                            </button>
+                        </div>
+                    )}
+
+                    <div className="bg-white border-b border-slate-200 px-6 py-3 flex flex-wrap justify-between items-center gap-4 shrink-0">
+                        <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+                            <button 
+                                onClick={() => setActiveTab('table')}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'table' ? 'bg-slate-900 text-white shadow' : 'text-slate-600 hover:text-slate-900'}`}
+                            >
+                                <i data-lucide="table" className="w-4 h-4"></i>
+                                Registro (Tabla)
+                            </button>
+                            <button 
+                                onClick={() => setActiveTab('plan')}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'plan' ? 'bg-slate-900 text-white shadow' : 'text-slate-600 hover:text-slate-900'}`}
+                            >
+                                <i data-lucide="map" className="w-4 h-4"></i>
+                                Plano Interactivo (Planta & Depósito)
+                            </button>
+                        </div>
+
+                        <button 
+                            onClick={handleOpenAddModal}
+                            className="bg-[#78BC1B] hover:bg-[#68a417] text-white font-bold px-5 py-2 rounded-xl text-sm flex items-center gap-2 shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98]"
+                        >
+                            <i data-lucide="plus-circle" className="w-4 h-4"></i>
+                            Agregar Motor
+                        </button>
+                    </div>
+
+                    <main className="flex-1 overflow-hidden relative flex flex-col p-6">
+                        {activeTab === 'table' ? (
+                            <TableView 
+                                motors={filteredMotors}
+                                allMotorsCount={motors.length}
+                                searchTerm={searchTerm}
+                                setSearchTerm={setSearchTerm}
+                                filterLocation={filterLocation}
+                                setFilterLocation={setFilterLocation}
+                                filterCondition={filterCondition}
+                                setFilterCondition={setFilterCondition}
+                                onEdit={handleOpenEditModal}
+                                onDelete={confirmDeleteMotor}
+                                onQuickUpdate={handleQuickUpdateStatus}
+                            />
+                        ) : (
+                            <PlanView 
+                                motors={motors}
+                                onUpdatePosition={async (id, x, y) => {
+                                    const target = motors.find(m => m.id === id);
+                                    if (!target) return;
+                                    const updated = { ...target, x, y };
+                                    try {
+                                        if (window.firebaseModules && userId) {
+                                            const { getFirestore, setDoc, doc } = window.firebaseModules;
+                                            const db = getFirestore();
+                                            const appId = typeof __app_id !== 'undefined' ? __app_id : 'cartocor-motors-default';
+                                            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'motors_list', id), updated, { merge: true });
+                                        }
+                                    } catch (err) {
+                                        console.error("Error guardando posición:", err);
+                                    }
+                                    setMotors(motors.map(m => m.id === id ? updated : m));
+                                    showToast('Ubicación en plano actualizada');
+                                }}
+                                onQuickUpdate={handleQuickUpdateStatus}
+                                onEdit={handleOpenEditModal}
+                            />
+                        )}
+                    </main>
+
+                    {isModalOpen && (
+                        <MotorModal 
+                            formData={formData}
+                            setFormData={setFormData}
+                            isEditing={!!editingMotor}
+                            onClose={() => setIsModalOpen(false)}
+                            onSave={handleSaveMotor}
+                        />
+                    )}
+
+                    {modalMessage && (
+                        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+                            <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-sm p-6 shadow-2xl text-center">
+                                <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i data-lucide="alert-circle" className="w-6 h-6"></i>
+                                </div>
+                                <h3 className="text-base font-bold text-slate-900 mb-2">Aviso del Sistema</h3>
+                                <p className="text-xs text-slate-600 mb-6">{modalMessage}</p>
+                                <button 
+                                    onClick={() => setModalMessage(null)}
+                                    className="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 rounded-xl text-xs transition-colors"
+                                >
+                                    Entendido
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {deleteTargetId && (
+                        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+                            <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-sm p-6 shadow-2xl text-center">
+                                <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i data-lucide="trash-2" className="w-6 h-6"></i>
+                                </div>
+                                <h3 className="text-base font-bold text-slate-900 mb-2">¿Eliminar Motor?</h3>
+                                <p className="text-xs text-slate-600 mb-6">Esta acción eliminará permanentemente el motor seleccionado del registro de Cartocor.</p>
+                                <div className="flex gap-3">
+                                    <button 
+                                        onClick={() => setDeleteTargetId(null)}
+                                        className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2.5 rounded-xl text-xs transition-colors"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button 
+                                        onClick={executeDelete}
+                                        className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-2.5 rounded-xl text-xs transition-colors shadow-sm"
+                                    >
+                                        Sí, eliminar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {toast && (
+                        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 border border-slate-800 animate-bounce">
+                            <i data-lucide="check-circle-2" className="w-5 h-5" style={{ color: '#78BC1B' }}></i>
+                            <span className="text-sm font-medium">{toast}</span>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        function TableView({ motors, allMotorsCount, searchTerm, setSearchTerm, filterLocation, setFilterLocation, filterCondition, setFilterCondition, onEdit, onDelete, onQuickUpdate }) {
+            return (
+                <div className="flex flex-col h-full overflow-hidden bg-white border border-slate-200 rounded-2xl shadow-sm">
+                    <div className="bg-slate-50 border-b border-slate-200 p-4 flex flex-wrap gap-4 items-center justify-between">
+                        <div className="flex flex-wrap items-center gap-3 flex-1">
+                            <div className="relative min-w-[240px] flex-1">
+                                <i data-lucide="search" className="w-4 h-4 text-slate-400 absolute left-3.5 top-3"></i>
+                                <input 
+                                    type="text" 
+                                    placeholder="Buscar por código, descripción o potencia..." 
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="w-full bg-white border border-slate-300 rounded-xl pl-10 pr-4 py-2 text-sm text-slate-900 focus:outline-none focus:border-slate-900 shadow-sm"
+                                />
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs text-slate-600 font-semibold">Ubicación:</span>
+                                <select 
+                                    value={filterLocation}
+                                    onChange={(e) => setFilterLocation(e.target.value)}
+                                    className="bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-slate-900 shadow-sm"
+                                >
+                                    <option value="Todos">Todas</option>
+                                    <option value="Depósito">Depósito</option>
+                                    <option value="Planta">Planta</option>
+                                </select>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs text-slate-600 font-semibold">Condición:</span>
+                                <select 
+                                    value={filterCondition}
+                                    onChange={(e) => setFilterCondition(e.target.value)}
+                                    className="bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-slate-900 shadow-sm"
+                                >
+                                    <option value="Todas">Todas</option>
+                                    <option value="En funcionamiento">En funcionamiento</option>
+                                    <option value="Esperando repuesto">Esperando repuesto</option>
+                                    <option value="En reparación">En reparación</option>
+                                    <option value="Retirado">Retirado</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="text-xs text-slate-500 font-medium">
+                            Mostrando <span className="text-slate-900 font-bold">{motors.length}</span> de {allMotorsCount} registros
+                        </div>
+                    </div>
+
+                    <div className="flex-1 overflow-x-auto">
+                        <table className="w-full text-left border-collapse text-sm">
+                            <thead>
+                                <tr className="bg-slate-900 text-white uppercase text-xs tracking-wider sticky top-0 z-10">
+                                    <th className="py-3.5 px-4 font-semibold">Código / Tag</th>
+                                    <th className="py-3.5 px-4 font-semibold">Potencia</th>
+                                    <th className="py-3.5 px-4 font-semibold">RPM</th>
+                                    <th className="py-3.5 px-4 font-semibold">Carcasa</th>
+                                    <th className="py-3.5 px-4 font-semibold">Ubicación</th>
+                                    <th className="py-3.5 px-4 font-semibold">Condición</th>
+                                    <th className="py-3.5 px-4 font-semibold">Descripción / Observaciones</th>
+                                    <th className="py-3.5 px-4 font-semibold text-right">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-200">
+                                {motors.length === 0 ? (
+                                    <tr>
+                                        <td colSpan="8" className="text-center py-16 text-slate-400">
+                                            <i data-lucide="folder-open" className="w-10 h-10 mx-auto mb-2 opacity-40"></i>
+                                            No se encontraron registros.
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    motors.map((motor) => {
+                                        const condStyle = CONDITION_COLORS[motor.condition] || CONDITION_COLORS['Retirado'];
+                                        return (
+                                            <tr key={motor.id} className="hover:bg-slate-50/80 transition-colors group">
+                                                <td className="py-3 px-4 font-mono font-bold text-slate-900 flex items-center gap-2">
+                                                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: condStyle.hex }}></span>
+                                                    {motor.tag}
+                                                </td>
+                                                <td className="py-3 px-4 text-slate-800">{motor.power}</td>
+                                                <td className="py-3 px-4 text-slate-800">{motor.rpm} RPM</td>
+                                                <td className="py-3 px-4">
+                                                    <span className="px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-100 text-slate-800 border border-slate-200">
+                                                        {motor.flange}
+                                                    </span>
+                                                </td>
+                                                <td className="py-3 px-4">
+                                                    <select 
+                                                        value={motor.location}
+                                                        onChange={(e) => onQuickUpdate(motor.id, undefined, e.target.value)}
+                                                        className={`text-xs font-semibold px-2.5 py-1 rounded-lg border cursor-pointer focus:outline-none ${motor.location === 'Depósito' ? 'bg-slate-100 text-slate-800 border-slate-300' : 'bg-emerald-50 text-emerald-900 border-emerald-300'}`}
+                                                    >
+                                                        <option value="Depósito">Depósito</option>
+                                                        <option value="Planta">Planta</option>
+                                                    </select>
+                                                </td>
+                                                <td className="py-3 px-4">
+                                                    <select 
+                                                        value={motor.condition}
+                                                        onChange={(e) => onQuickUpdate(motor.id, e.target.value, undefined)}
+                                                        className={`text-xs font-semibold px-2.5 py-1 rounded-lg border cursor-pointer focus:outline-none ${condStyle.bg} ${condStyle.text} ${condStyle.border}`}
+                                                    >
+                                                        <option value="En funcionamiento">En funcionamiento</option>
+                                                        <option value="Esperando repuesto">Esperando repuesto</option>
+                                                        <option value="En reparación">En reparación</option>
+                                                        <option value="Retirado">Retirado</option>
+                                                    </select>
+                                                </td>
+                                                <td className="py-3 px-4 text-slate-600 text-xs max-w-xs truncate" title={motor.description}>
+                                                    {motor.description || 'Sin descripción'}
+                                                </td>
+                                                <td className="py-3 px-4 text-right">
+                                                    <div className="flex items-center justify-end gap-1 opacity-80 group-hover:opacity-100">
+                                                        <button 
+                                                            onClick={() => onEdit(motor)}
+                                                            className="p-1.5 hover:bg-slate-200 rounded-lg text-slate-600 hover:text-slate-900 transition-colors"
+                                                            title="Editar motor"
+                                                        >
+                                                            <i data-lucide="edit-3" className="w-4 h-4"></i>
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => onDelete(motor.id)}
+                                                            className="p-1.5 hover:bg-red-100 rounded-lg text-slate-400 hover:text-red-600 transition-colors"
+                                                            title="Eliminar motor"
+                                                        >
+                                                            <i data-lucide="trash-2" className="w-4 h-4"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            );
+        }
+
+        function PlanView({ motors, onUpdatePosition, onQuickUpdate, onEdit }) {
+            const [selectedMotor, setSelectedMotor] = useState(null);
+            const [draggingId, setDraggingId] = useState(null);
+            const [planFilter, setPlanFilter] = useState('Todos');
+
+            const handleDragOver = (e) => { e.preventDefault(); };
+
+            const handleDrop = (e) => {
+                e.preventDefault();
+                if (!draggingId) return;
+                const rect = e.currentTarget.getBoundingClientRect();
+                const x = Math.max(5, Math.min(95, ((e.clientX - rect.left) / rect.width) * 100));
+                const y = Math.max(5, Math.min(95, ((e.clientY - rect.top) / rect.height) * 100));
+                onUpdatePosition(draggingId, Math.round(x), Math.round(y));
+                setDraggingId(null);
+            };
+
+            const filteredMotors = planFilter === 'Todos' ? motors : motors.filter(m => m.location === planFilter);
+
+            return (
+                <div className="flex flex-col h-full gap-4 overflow-hidden">
+                    <div className="flex flex-wrap justify-between items-center bg-white border border-slate-200 p-4 rounded-2xl gap-4 shrink-0 shadow-sm">
+                        <div>
+                            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                                <i data-lucide="map-pin" className="w-4 h-4" style={{ color: '#78BC1B' }}></i>
+                                Plano Operativo (Depósito & Planta Cartocor)
+                            </h2>
+                            <p className="text-xs text-slate-500">Arrastra los pines para ubicarlos en el esquema o haz clic para ver y editar su estado</p>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2 text-xs">
+                                <span className="text-slate-600 font-medium">Filtrar Zonas:</span>
+                                <select 
+                                    value={planFilter}
+                                    onChange={(e) => setPlanFilter(e.target.value)}
+                                    className="bg-slate-50 border border-slate-300 rounded-xl px-3 py-1.5 text-sm text-slate-900 focus:outline-none focus:border-slate-900"
+                                >
+                                    <option value="Todos">Todo el predio</option>
+                                    <option value="Depósito">Solo Depósito</option>
+                                    <option value="Planta">Solo Planta</option>
+                                </select>
+                            </div>
+
+                            <div className="hidden lg:flex items-center gap-3 text-xs bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl">
+                                <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#78BC1B' }}></span><span className="text-slate-700">Funcionando</span></div>
+                                <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span><span className="text-slate-700">Esperando repuesto</span></div>
+                                <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-orange-500"></span><span className="text-slate-700">En reparación</span></div>
+                                <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-slate-500"></span><span className="text-slate-700">Retirado</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div 
+                        className="flex-1 bg-white border border-slate-200 rounded-2xl relative overflow-hidden shadow-inner flex items-center justify-center select-none"
+                        onDragOver={handleDragOver}
+                        onDrop={handleDrop}
+                    >
+                        <div className="absolute inset-0 opacity-10 pointer-events-none flex flex-col">
+                            <div className="flex-1 border-b border-slate-400 flex">
+                                <div className="w-1/3 border-r border-slate-400 p-6 flex flex-col justify-between">
+                                    <span className="text-lg font-black tracking-widest text-slate-800 uppercase">DEPÓSITO</span>
+                                </div>
+                                <div className="flex-1 p-6 flex flex-col justify-between">
+                                    <span className="text-lg font-black tracking-widest text-slate-800 uppercase">PLANTA DE PRODUCCIÓN</span>
+                                </div>
+                            </div>
+                            <div className="h-1/3 border-t border-slate-400 p-6 flex items-end">
+                                <span className="text-lg font-black tracking-widest text-slate-800 uppercase">TALLER DE MANTENIMIENTO</span>
+                            </div>
+                        </div>
+
+                        <div className="absolute left-1/3 top-0 bottom-0 w-px bg-slate-300 border-r border-dashed border-slate-300"></div>
+                        <div className="absolute left-0 right-0 top-2/3 h-px bg-slate-300 border-b border-dashed border-slate-300"></div>
+
+                        <div className="absolute top-4 left-6 bg-slate-900 text-white px-3 py-1 rounded-lg text-xs font-bold tracking-wider shadow-sm pointer-events-none">
+                            📦 DEPÓSITO
+                        </div>
+                        <div className="absolute top-4 right-6 bg-slate-900 text-white px-3 py-1 rounded-lg text-xs font-bold tracking-wider shadow-sm pointer-events-none">
+                            🏭 PLANTA DE PRODUCCIÓN
+                        </div>
+
+                        {filteredMotors.map((motor) => {
+                            const condStyle = CONDITION_COLORS[motor.condition] || CONDITION_COLORS['Retirado'];
+                            const isSelected = selectedMotor?.id === motor.id;
+                            return (
+                                <div 
+                                    key={motor.id}
+                                    draggable
+                                    onDragStart={() => setDraggingId(motor.id)}
+                                    onClick={() => setSelectedMotor(motor)}
+                                    style={{ left: `${motor.x}%`, top: `${motor.y}%` }}
+                                    className={`absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-transform hover:scale-125 z-20 group`}
+                                >
+                                    <div className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-xl shadow-md border backdrop-blur-md transition-all ${isSelected ? 'ring-2 ring-slate-900 scale-110 bg-slate-900 text-white' : 'bg-white text-slate-900'} ${condStyle.border}`}>
+                                        <span className="w-3 h-3 rounded-full animate-pulse shadow-sm" style={{ backgroundColor: condStyle.hex }}></span>
+                                        <span className="font-mono font-bold text-xs">{motor.tag}</span>
+                                        <span className="text-[10px] text-slate-500 hidden sm:inline">({motor.power})</span>
+                                    </div>
+                                </div>
+                            );
+                        })}
+
+                        {selectedMotor && (
+                            <div className="absolute bottom-6 right-6 bg-white border border-slate-300 rounded-2xl p-5 shadow-2xl w-80 z-30 animate-in fade-in slide-in-from-bottom-4">
+                                <div className="flex justify-between items-start mb-3">
+                                    <div>
+                                        <span className="text-xs font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-900 border border-slate-200 font-bold">
+                                            {selectedMotor.tag}
+                                        </span>
+                                        <h3 className="text-sm font-bold text-slate-900 mt-1">{selectedMotor.power} - {selectedMotor.rpm} RPM</h3>
+                                    </div>
+                                    <button 
+                                        onClick={() => setSelectedMotor(null)}
+                                        className="text-slate-400 hover:text-slate-900 p-1 rounded-lg hover:bg-slate-100"
+                                    >
+                                        <i data-lucide="x" className="w-4 h-4"></i>
+                                    </button>
+                                </div>
+
+                                <p className="text-xs text-slate-600 mb-4 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                                    {selectedMotor.description || 'Sin descripción detallada.'}
+                                </p>
+
+                                <div className="space-y-3 text-xs mb-4">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-slate-500">Ubicación actual:</span>
+                                        <select 
+                                            value={selectedMotor.location}
+                                            onChange={(e) => {
+                                                const updatedLoc = e.target.value;
+                                                onQuickUpdate(selectedMotor.id, undefined, updatedLoc);
+                                                setSelectedMotor({...selectedMotor, location: updatedLoc});
+                                            }}
+                                            className="bg-slate-50 border border-slate-300 text-slate-900 rounded-lg px-2 py-1 font-semibold"
+                                        >
+                                            <option value="Depósito">Depósito</option>
+                                            <option value="Planta">Planta</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-slate-500">Condición:</span>
+                                        <select 
+                                            value={selectedMotor.condition}
+                                            onChange={(e) => {
+                                                const updatedCond = e.target.value;
+                                                onQuickUpdate(selectedMotor.id, updatedCond, undefined);
+                                                setSelectedMotor({...selectedMotor, condition: updatedCond});
+                                            }}
+                                            className="bg-slate-50 border border-slate-300 text-slate-900 rounded-lg px-2 py-1 font-semibold"
+                                        >
+                                            <option value="En funcionamiento">En funcionamiento</option>
+                                            <option value="Esperando repuesto">Esperando repuesto</option>
+                                            <option value="En reparación">En reparación</option>
+                                            <option value="Retirado">Retirado</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-slate-500">Carcasa:</span>
+                                        <span className="font-semibold text-slate-900">{selectedMotor.flange}</span>
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-2">
+                                    <button 
+                                        onClick={() => {
+                                            onEdit(selectedMotor);
+                                            setSelectedMotor(null);
+                                        }}
+                                        className="flex-1 bg-slate-900 hover:bg-slate-800 text-white py-2 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 shadow-sm"
+                                    >
+                                        <i data-lucide="edit-3" className="w-3.5 h-3.5"></i> Editar Ficha
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        function MotorModal({ formData, setFormData, isEditing, onClose, onSave }) {
+            return (
+                <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-in fade-in zoom-in-95">
+                        <div className="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+                            <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                                <i data-lucide={isEditing ? "edit-3" : "plus-circle"} className="w-5 h-5 text-emerald-600"></i>
+                                {isEditing ? 'Editar Ficha de Motor' : 'Registrar Nuevo Motor'}
+                            </h3>
+                            <button onClick={onClose} className="text-slate-400 hover:text-slate-900 p-1 rounded-lg hover:bg-slate-100">
+                                <i data-lucide="x" className="w-5 h-5"></i>
+                            </button>
+                        </div>
+
+                        <form onSubmit={onSave} className="p-6 space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-700 mb-1">Código / Tag *</label>
+                                    <input 
+                                        type="text" 
+                                        required
+                                        value={formData.tag}
+                                        onChange={(e) => setFormData({...formData, tag: e.target.value})}
+                                        placeholder="Ej. MOT-007"
+                                        className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-slate-900 font-mono"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-700 mb-1">Potencia</label>
+                                    <input 
+                                        type="text" 
+                                        value={formData.power}
+                                        onChange={(e) => setFormData({...formData, power: e.target.value})}
+                                        placeholder="Ej. 15 HP"
+                                        className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-slate-900"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-700 mb-1">RPM</label>
+                                    <input 
+                                        type="text" 
+                                        value={formData.rpm}
+                                        onChange={(e) => setFormData({...formData, rpm: e.target.value})}
+                                        placeholder="Ej. 1450"
+                                        className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-slate-900"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-700 mb-1">Carcasa / Brida</label>
+                                    <select 
+                                        value={formData.flange}
+                                        onChange={(e) => setFormData({...formData, flange: e.target.value})}
+                                        className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-slate-900"
+                                    >
+                                        <option value="Con brida">Con brida</option>
+                                        <option value="Sin brida">Sin brida</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-700 mb-1">Ubicación</label>
+                                    <select 
+                                        value={formData.location}
+                                        onChange={(e) => setFormData({...formData, location: e.target.value})}
+                                        className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-slate-900"
+                                    >
+                                        <option value="Depósito">Depósito</option>
+                                        <option value="Planta">Planta</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-700 mb-1">Condición</label>
+                                    <select 
+                                        value={formData.condition}
+                                        onChange={(e) => setFormData({...formData, condition: e.target.value})}
+                                        className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-slate-900"
+                                    >
+                                        <option value="En funcionamiento">En funcionamiento</option>
+                                        <option value="Esperando repuesto">Esperando repuesto</option>
+                                        <option value="En reparación">En reparación</option>
+                                        <option value="Retirado">Retirado</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-700 mb-1">Descripción / Observaciones</label>
+                                <textarea 
+                                    rows="3"
+                                    value={formData.description}
+                                    onChange={(e) => setFormData({...formData, description: e.target.value})}
+                                    placeholder="Detalles de uso, repuestos faltantes o notas de mantenimiento..."
+                                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-slate-900"
+                                ></textarea>
+                            </div>
+
+                            <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+                                <button 
+                                    type="button" 
+                                    onClick={onClose}
+                                    className="px-4 py-2 rounded-xl text-sm font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button 
+                                    type="submit" 
+                                    className="px-5 py-2 rounded-xl text-sm font-semibold bg-slate-900 hover:bg-slate-800 text-white shadow-sm transition-all"
+                                >
+                                    {isEditing ? 'Guardar Cambios' : 'Registrar Motor'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>
