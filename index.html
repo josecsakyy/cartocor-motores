@@ -83,75 +83,40 @@
             { 
                 id: '1', tag: 'MOT-001', code: 'ME-PU01', power: '30 HP', rpm: '1500', flange: 'Con brida', location: 'Sala de Máquina', condition: 'En funcionamiento', description: 'Bomba Centricleaner N° 2 - Humedo', x: 65, y: 35, palletNum: null, rack: '', floor: '', pallet: '',
                 history: [
-                    { date: '2025-01-10', action: 'Instalación inicial', user: 'Mantenimiento Arroyito', notes: 'Motor alineado y probado OK.' },
-                    { date: '2025-08-15', action: 'Control preventivo de vibraciones', user: 'Predictivo', notes: 'Vibración normal dentro de norma ISO.' }
+                    { date: '2025-01-10', action: 'Instalación inicial', user: 'Mantenimiento Arroyito', notes: 'Motor alineado y probado OK.' }
                 ]
             },
             { 
                 id: '2', tag: 'MOT-002', code: 'ME-PU02', power: '7.5 HP', rpm: '2900', flange: 'Sin brida', location: 'Depósito', condition: 'Esperando repuesto', description: 'Motor de repuesto sección húmeda', x: 25, y: 30, palletNum: 1, rack: 'Rack 1', floor: 'Piso 1', pallet: 'Tarima 1',
                 history: [
-                    { date: '2026-02-10', action: 'Ingreso a Depósito', user: 'Pañol', notes: 'Guardado en Tarima #1. Falta rodamiento delantero.' }
+                    { date: '2026-02-10', action: 'Ingreso a Tarima #1', user: 'Pañol', notes: 'Falta rodamiento delantero.' }
                 ]
             },
             { 
                 id: '3', tag: 'MOT-003', code: 'ME-PU03', power: '20 HP', rpm: '1500', flange: 'Con brida', location: 'Planta Sector A', condition: 'En reparación', description: 'Extractor 3 portones mesa - Túnel', x: 70, y: 75, palletNum: null, rack: '', floor: '', pallet: '',
                 history: [
-                    { date: '2026-03-01', action: 'Retirado por falla eléctrica', user: 'Electricidad', notes: 'Cortocircuito en bobinado principal. Enviado a taller externo.' }
+                    { date: '2026-03-01', action: 'Retirado por falla eléctrica', user: 'Electricidad', notes: 'Enviado a taller externo.' }
                 ]
             },
             { 
-                id: '4', tag: 'MOT-004', code: 'ME-PU04', power: '5 HP', rpm: '1450', flange: 'Sin brida', location: 'Depósito', condition: 'En funcionamiento', description: 'Stock disponible en estantería central A-3', x: 18, y: 65, palletNum: 2, rack: 'Rack 1', floor: 'Piso 1', pallet: 'Tarima 2',
-                history: [
-                    { date: '2025-11-20', action: 'Revisión y pruebas en vacío', user: 'Taller', notes: 'Megado OK. Listo para uso.' }
-                ]
+                id: '4', tag: 'MOT-004', code: 'ME-PU04', power: '5 HP', rpm: '1450', flange: 'Sin brida', location: 'Depósito', condition: 'En funcionamiento', description: 'Stock disponible estantería central', x: 18, y: 65, palletNum: 2, rack: 'Rack 1', floor: 'Piso 1', pallet: 'Tarima 2',
+                history: []
             },
             { 
-                id: '5', tag: 'MOT-005', code: 'ME-PU05', power: '20 HP', rpm: '1450', flange: 'Con brida', location: 'Taller de Mantenimiento', condition: 'Retirado', description: 'Motor antiguo dado de baja por obsolescencia', x: 35, y: 80, palletNum: null, rack: '', floor: '', pallet: '',
-                history: [
-                    { date: '2024-05-10', action: 'Baja definitiva', user: 'Ingeniería', notes: 'Reemplazado por nuevo modelo de alta eficiencia.' }
-                ]
+                id: '5', tag: 'MOT-005', code: 'ME-PU05', power: '20 HP', rpm: '1450', flange: 'Con brida', location: 'Taller de Mantenimiento', condition: 'Retirado', description: 'Motor dado de baja por obsolescencia', x: 35, y: 80, palletNum: null, rack: '', floor: '', pallet: '',
+                history: []
             },
             { 
                 id: '6', tag: 'MOT-006', code: 'ME-PU06', power: '10 HP', rpm: '2900', flange: 'Con brida', location: 'Depósito', condition: 'En funcionamiento', description: 'Compresor de instrumentación auxiliar', x: 55, y: 55, palletNum: 7, rack: 'Rack 2', floor: 'Piso 1', pallet: 'Tarima 1',
-                history: [
-                    { date: '2025-06-05', action: 'Ingreso al Pañol', user: 'Pañol', notes: 'Ubicado en Tarima #7 (Rack 2).' }
-                ]
+                history: []
             }
         ];
 
         const CONDITION_COLORS = {
-            'En funcionamiento': { 
-                bg: 'bg-emerald-50', 
-                rowBg: 'bg-emerald-50/40 hover:bg-emerald-50/70', 
-                text: 'text-emerald-900', 
-                border: 'border-emerald-300', 
-                badge: 'bg-emerald-600 text-white', 
-                hex: '#78BC1B' 
-            },
-            'Esperando repuesto': { 
-                bg: 'bg-amber-50', 
-                rowBg: 'bg-amber-50/40 hover:bg-amber-50/70', 
-                text: 'text-amber-900', 
-                border: 'border-amber-300', 
-                badge: 'bg-amber-500 text-white', 
-                hex: '#d97706' 
-            },
-            'En reparación': { 
-                bg: 'bg-orange-50', 
-                rowBg: 'bg-orange-50/40 hover:bg-orange-50/70', 
-                text: 'text-orange-900', 
-                border: 'border-orange-300', 
-                badge: 'bg-orange-600 text-white', 
-                hex: '#ea580c' 
-            },
-            'Retirado': { 
-                bg: 'bg-slate-100', 
-                rowBg: 'bg-slate-100/60 hover:bg-slate-100', 
-                text: 'text-slate-800', 
-                border: 'border-slate-300', 
-                badge: 'bg-slate-600 text-white', 
-                hex: '#64748b' 
-            }
+            'En funcionamiento': { bg: 'bg-emerald-50', rowBg: 'bg-emerald-50/40 hover:bg-emerald-50/70', text: 'text-emerald-900', border: 'border-emerald-300', badge: 'bg-emerald-600 text-white', hex: '#78BC1B' },
+            'Esperando repuesto': { bg: 'bg-amber-50', rowBg: 'bg-amber-50/40 hover:bg-amber-50/70', text: 'text-amber-900', border: 'border-amber-300', badge: 'bg-amber-500 text-white', hex: '#d97706' },
+            'En reparación': { bg: 'bg-orange-50', rowBg: 'bg-orange-50/40 hover:bg-orange-50/70', text: 'text-orange-900', border: 'border-orange-300', badge: 'bg-orange-600 text-white', hex: '#ea580c' },
+            'Retirado': { bg: 'bg-slate-100', rowBg: 'bg-slate-100/60 hover:bg-slate-100', text: 'text-slate-800', border: 'border-slate-300', badge: 'bg-slate-600 text-white', hex: '#64748b' }
         };
 
         function App() {
@@ -170,7 +135,6 @@
                 tag: '', code: '', power: '', rpm: '', flange: 'Con brida', location: 'Depósito', condition: 'En funcionamiento', description: '', x: 50, y: 50, palletNum: 1
             });
 
-            // Modales de Historial y Contrastador Excel
             const [historyModalMotor, setHistoryModalMotor] = useState(null);
             const [newHistoryAction, setNewHistoryAction] = useState('');
             const [newHistoryNotes, setNewHistoryNotes] = useState('');
@@ -332,13 +296,18 @@
                     history: existingHistory
                 };
 
+                const targetId = editingMotor ? editingMotor.id : Date.now().toString();
+                const finalMotor = { ...payload, id: targetId };
+
+                // Actualizar estado local inmediatamente para reacción instantánea
+                setMotors(prev => editingMotor ? prev.map(m => m.id === targetId ? finalMotor : m) : [...prev, finalMotor]);
+
                 try {
                     if (window.firebaseModules && userId) {
                         const { getFirestore, setDoc, doc } = window.firebaseModules;
                         const db = getFirestore();
-                        const targetId = editingMotor ? editingMotor.id : Date.now().toString();
-                        await setDoc(doc(db, 'artifacts', 'cartocor-motors-production', 'public', 'data', 'motors_list', targetId), { ...payload, id: targetId }, { merge: true });
-                        showToast(editingMotor ? 'Motor actualizado en la nube' : 'Nuevo motor registrado');
+                        await setDoc(doc(db, 'artifacts', 'cartocor-motors-production', 'public', 'data', 'motors_list', targetId), finalMotor, { merge: true });
+                        showToast(editingMotor ? 'Motor actualizado y sincronizado' : 'Nuevo motor registrado');
                     }
                 } catch (err) {
                     console.error("Error guardando:", err);
@@ -360,6 +329,8 @@
                 const updatedHistory = [newEntry, ...(historyModalMotor.history || [])];
                 const updatedMotor = { ...historyModalMotor, history: updatedHistory };
 
+                setMotors(prev => prev.map(m => m.id === historyModalMotor.id ? updatedMotor : m));
+
                 try {
                     if (window.firebaseModules && userId) {
                         const { getFirestore, setDoc, doc } = window.firebaseModules;
@@ -370,35 +341,55 @@
                     console.error("Error guardando historial:", err);
                 }
 
-                setMotors(motors.map(m => m.id === historyModalMotor.id ? updatedMotor : m));
                 setHistoryModalMotor(updatedMotor);
                 setNewHistoryAction('');
                 setNewHistoryNotes('');
                 showToast('Evento agregado al historial del motor');
             };
 
-            const handleQuickUpdate = async (id, newCondition, newLocation) => {
+            const handleQuickUpdate = async (id, newCondition, newLocation, newPalletNum) => {
                 const target = motors.find(m => m.id === id);
                 if (!target) return;
                 
-                const actionDesc = newCondition ? `Cambio de condición a: ${newCondition}` : `Cambio de ubicación a: ${newLocation}`;
+                let actionDesc = 'Actualización rápida de estado';
+                if (newCondition !== undefined) actionDesc = `Cambio de condición a: ${newCondition}`;
+                if (newLocation !== undefined) actionDesc = `Cambio de ubicación a: ${newLocation}`;
+                if (newPalletNum !== undefined) actionDesc = `Reubicado en Tarima #${newPalletNum}`;
+
                 const newHistoryEntry = {
                     date: new Date().toISOString().split('T')[0],
                     action: actionDesc,
                     user: 'Operador',
-                    notes: 'Actualización rápida desde tabla.'
+                    notes: 'Modificación rápida en sistema.'
                 };
+
+                let updatedRack = target.rack;
+                let updatedFloor = target.floor;
+                let updatedPallet = target.pallet;
+                let updatedPalletNum = target.palletNum;
+
+                if (newPalletNum !== undefined) {
+                    const slot = WAREHOUSE_SLOTS.find(s => s.number === Number(newPalletNum));
+                    if (slot) {
+                        updatedPalletNum = slot.number;
+                        updatedRack = slot.rack;
+                        updatedFloor = slot.floor;
+                        updatedPallet = slot.pallet;
+                    }
+                }
 
                 const updated = {
                     ...target,
                     condition: newCondition !== undefined ? newCondition : target.condition,
                     location: newLocation !== undefined ? newLocation : target.location,
-                    palletNum: newLocation && newLocation !== 'Depósito' ? null : target.palletNum,
-                    rack: newLocation && newLocation !== 'Depósito' ? '' : target.rack,
-                    floor: newLocation && newLocation !== 'Depósito' ? '' : target.floor,
-                    pallet: newLocation && newLocation !== 'Depósito' ? '' : target.pallet,
+                    palletNum: newLocation && newLocation !== 'Depósito' ? null : updatedPalletNum,
+                    rack: newLocation && newLocation !== 'Depósito' ? '' : updatedRack,
+                    floor: newLocation && newLocation !== 'Depósito' ? '' : updatedFloor,
+                    pallet: newLocation && newLocation !== 'Depósito' ? '' : updatedPallet,
                     history: [newHistoryEntry, ...(target.history || [])]
                 };
+
+                setMotors(prev => prev.map(m => m.id === id ? updated : m));
 
                 try {
                     if (window.firebaseModules && userId) {
@@ -409,14 +400,16 @@
                 } catch (err) {
                     console.error("Error actualizando:", err);
                 }
-                setMotors(motors.map(m => m.id === id ? updated : m));
-                showToast('Estado actualizado en tiempo real');
+                showToast('Actualizado en tiempo real en todas las ventanas');
             };
 
             const handleUpdatePosition = async (id, x, y) => {
                 const target = motors.find(m => m.id === id);
                 if (!target) return;
                 const updated = { ...target, x, y };
+
+                setMotors(prev => prev.map(m => m.id === id ? updated : m));
+
                 try {
                     if (window.firebaseModules && userId) {
                         const { getFirestore, setDoc, doc } = window.firebaseModules;
@@ -426,11 +419,9 @@
                 } catch (err) {
                     console.error("Error posición:", err);
                 }
-                setMotors(motors.map(m => m.id === id ? updated : m));
                 showToast('Ubicación en plano actualizada');
             };
 
-            // Procesar y contrastar Excel subido
             const handleExcelUpload = (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
@@ -440,7 +431,6 @@
                     try {
                         const data = new Uint8Array(evt.target.result);
                         const workbook = XLSX.read(data, { type: 'array' });
-                        
                         let parsedNewMotors = [];
 
                         workbook.SheetNames.forEach(sheetName => {
@@ -448,10 +438,7 @@
                             const jsonRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
                             if (jsonRows.length < 2) return;
 
-                            // Detectar columnas relevantes
                             const header = jsonRows[0].map(h => String(h || '').trim().toUpperCase());
-                            
-                            // Buscar índices
                             const idxTag = header.findIndex(h => h.includes('TAG') || h.includes('NRO') || h.includes('NUMERO'));
                             const idxCode = header.findIndex(h => h.includes('CODIGO') || h.includes('NUEVO CODIGO') || h.includes('COD'));
                             const idxDesc = header.findIndex(h => h.includes('UBICACION') || h.includes('OBSERVACION') || h.includes('DESCRIPCION'));
@@ -467,7 +454,7 @@
                                 const hpVal = idxHp >= 0 ? row[idxHp] : '';
                                 const rpmVal = idxRpm >= 0 ? row[idxRpm] : 1500;
                                 const tarimaVal = idxTarima >= 0 ? Number(row[idxTarima]) : null;
-                                const codeVal = idxCode >= 0 ? String(row[idxCode] || '').trim() : `ME-X${i}`;
+                                const codeVal = idxCode >= 0 ? String(row[idxCode] || '').trim() : `ME-PU${i}`;
                                 const tagVal = idxTag >= 0 && row[idxTag] ? String(row[idxTag]).trim() : `MOT-${100 + i}`;
 
                                 if (descVal || hpVal) {
@@ -497,14 +484,6 @@
                             }
                         });
 
-                        if (parsedNewMotors.length === 0) {
-                            // Fallback si no detectó columnas estándar
-                            parsedNewMotors = [
-                                { id: 'ex_1', tag: 'MOT-901', code: 'ME-EX01', power: '15 HP', rpm: '1500', flange: 'Con brida', location: 'Depósito', condition: 'En funcionamiento', description: 'Motor importado de prueba', x: 50, y: 50, palletNum: 3, rack: 'Rack 1', floor: 'Piso 2', pallet: 'Tarima 1', history: [] }
-                            ];
-                        }
-
-                        // Realizar contraste contra motores actuales
                         const newItems = [];
                         const updatedItems = [];
 
@@ -560,7 +539,6 @@
                 showToast('Base de datos sincronizada con el Excel con éxito');
             };
 
-            // Descargar Excel
             const exportToExcel = () => {
                 const worksheetData = motors.map(m => ({
                     'Tag': m.tag,
@@ -700,7 +678,7 @@
                                     onOpenHistory={(motor) => setHistoryModalMotor(motor)}
                                 />
                             ) : activeTab === 'warehouse' ? (
-                                <WarehouseRacksView motors={motors} onEdit={handleOpenEditModal} onOpenHistory={(motor) => setHistoryModalMotor(motor)} />
+                                <WarehouseRacksView motors={motors} onEdit={handleOpenEditModal} onOpenHistory={(motor) => setHistoryModalMotor(motor)} onQuickUpdate={handleQuickUpdate} warehouseSlots={WAREHOUSE_SLOTS} />
                             ) : (
                                 <PlanView 
                                     motors={motors}
@@ -988,7 +966,7 @@
             );
         }
 
-        function WarehouseRacksView({ motors, onEdit, onOpenHistory }) {
+        function WarehouseRacksView({ motors, onEdit, onOpenHistory, onQuickUpdate, warehouseSlots }) {
             const racks = ['Rack 1', 'Rack 2', 'Rack 3', 'Rack 4'];
             const floors = ['Piso 3', 'Piso 2', 'Piso 1'];
             const pallets = ['Tarima 1', 'Tarima 2'];
@@ -1009,7 +987,7 @@
                             <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
                                 Depósito de Motores - Tarimas Numeradas del 1 al 24
                             </h2>
-                            <p className="text-xs text-slate-500 mt-1">Esquema físico de los 4 Racks. Cada tarima muestra los motores almacenados. Haz clic en un motor para editarlo o ver su historial.</p>
+                            <p className="text-xs text-slate-500 mt-1">Esquema físico de los 4 Racks. Puedes reasignar cualquier motor a otra tarima directamente desde aquí.</p>
                         </div>
                         <div className="flex items-center gap-3 text-xs bg-slate-100 px-3 py-2 rounded-xl border border-slate-200">
                             <span className="font-semibold text-slate-700">Motores en Depósito:</span>
@@ -1059,7 +1037,7 @@
                                                                 )}
                                                             </div>
 
-                                                            <div className="flex flex-col gap-1.5 overflow-y-auto max-h-[120px]">
+                                                            <div className="flex flex-col gap-1.5 overflow-y-auto max-h-[140px]">
                                                                 {cellMotors.length === 0 ? (
                                                                     <div className="text-[10px] text-slate-300 italic text-center py-2">Vacío</div>
                                                                 ) : (
@@ -1068,15 +1046,41 @@
                                                                         return (
                                                                             <div 
                                                                                 key={motor.id}
-                                                                                onClick={() => onEdit(motor)}
-                                                                                className={`p-1.5 rounded-md border text-xs cursor-pointer transition-transform hover:scale-[1.02] shadow-2xs bg-white ${condStyle.border}`}
-                                                                                title={`${motor.tag} - ${motor.power} (${motor.condition})`}
-                                                                            >
+                                                                                className={`p-1.5 rounded-md border text-xs bg-white ${condStyle.border} shadow-2xs space-y-1`}
+                                                                        >
                                                                                 <div className="flex items-center justify-between font-mono font-bold text-slate-900 text-[11px]">
-                                                                                    <span>{motor.tag}</span>
+                                                                                    <span onClick={() => onEdit(motor)} className="cursor-pointer hover:underline">{motor.tag}</span>
                                                                                     <span className="w-2 h-2 rounded-full" style={{ backgroundColor: condStyle.hex }}></span>
                                                                                 </div>
-                                                                                <div className="text-[10px] text-slate-500 truncate">{motor.power} | {motor.description || 'Sin nota'}</div>
+                                                                                <div className="text-[10px] text-slate-500 truncate">{motor.power}</div>
+                                                                                {/* Selector rápido de tarima para mover el motor a otro rack/tarima */}
+                                                                                <div className="pt-1 border-t border-slate-100 flex items-center justify-between">
+                                                                                    <span className="text-[9px] text-slate-400">Mover:</span>
+                                                                                    <select 
+                                                                                        value={motor.palletNum || pGlobalNum}
+                                                                                        onChange={(e) => {
+                                                                                            const newPallet = Number(e.target.value);
+                                                                                            const slot = warehouseSlots.find(s => s.number === newPallet);
+                                                                                            if (slot) {
+                                                                                                // Actualizar en cascada
+                                                                                                const targetId = motor.id;
+                                                                                                const updated = {
+                                                                                                    ...motor,
+                                                                                                    palletNum: newPallet,
+                                                                                                    rack: slot.rack,
+                                                                                                    floor: slot.floor,
+                                                                                                    pallet: slot.pallet
+                                                                                                };
+                                                                                                onQuickUpdate(targetId, undefined, undefined, newPallet);
+                                                                                            }
+                                                                                        }}
+                                                                                        className="text-[10px] bg-slate-100 border border-slate-300 rounded px-1 py-0.5 font-semibold text-slate-800"
+                                                                                    >
+                                                                                        {warehouseSlots.map(s => (
+                                                                                            <option key={s.number} value={s.number}>#{s.number} ({s.rack})</option>
+                                                                                        ))}
+                                                                                    </select>
+                                                                                </div>
                                                                             </div>
                                                                         );
                                                                     })
