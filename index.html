@@ -67,7 +67,6 @@
             const [modalMessage, setModalMessage] = useState(null);
             const [deleteTargetId, setDeleteTargetId] = useState(null);
 
-            // Inicialización de Firebase con reglas obligatorias y sincronización en tiempo real
             useEffect(() => {
                 const initFirebase = async () => {
                     if (!window.firebaseModules) {
@@ -75,34 +74,35 @@
                         return;
                     }
 
-                    const { initializeApp, getAuth, signInAnonymously, signInWithCustomToken, getFirestore, collection, onSnapshot, setDoc, doc } = window.firebaseModules;
+                    const { initializeApp, getAuth, signInAnonymously, getFirestore, collection, onSnapshot, setDoc, doc } = window.firebaseModules;
                     
-                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'cartocor-motors-default';
-                    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { apiKey: "demo", projectId: "demo" };
+                    const firebaseConfig = {
+                        apiKey: "AIzaSyD6EQxG6wldQdPo6CDEnHDVc_gWbq5fUaI",
+                        authDomain: "cartocor-motores.firebaseapp.com",
+                        projectId: "cartocor-motores",
+                        storageBucket: "cartocor-motores.firebasestorage.app",
+                        messagingSenderId: "924232630993",
+                        appId: "1:924232630993:web:dbeadf5357dfce00643bf0",
+                        measurementId: "G-LQN3XLL2L1"
+                    };
+                    const appId = 'cartocor-motors-production';
 
                     try {
                         const app = initializeApp(firebaseConfig);
                         const db = getFirestore(app);
                         const auth = getAuth(app);
 
-                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                            await signInWithCustomToken(auth, __initial_auth_token);
-                        } else {
-                            await signInAnonymously(auth);
-                        }
+                        await signInAnonymously(auth);
 
                         const currentUser = auth.currentUser;
                         if (!currentUser) return;
                         setUserId(currentUser.uid);
 
-                        // Ruta pública obligatoria según reglas
                         const motorsCollection = collection(db, 'artifacts', appId, 'public', 'data', 'motors_list');
 
-                        // Suscripción en tiempo real con callback de error requerido
                         const unsubscribe = onSnapshot(motorsCollection, 
                             async (snapshot) => {
                                 if (snapshot.empty) {
-                                    // Si está vacía por primera vez, cargamos los datos iniciales
                                     for (const m of INITIAL_MOTORS) {
                                         await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'motors_list', m.id), m);
                                     }
@@ -117,7 +117,6 @@
                             }, 
                             (error) => {
                                 console.error("Error en Firebase onSnapshot:", error);
-                                // Fallback a localStorage si falla la red
                                 const saved = localStorage.getItem('cartocor_motors_v3');
                                 setMotors(saved ? JSON.parse(saved) : INITIAL_MOTORS);
                             }
@@ -196,7 +195,7 @@
                         if (window.firebaseModules && userId) {
                             const { getFirestore, doc, deleteDoc } = window.firebaseModules;
                             const db = getFirestore();
-                            const appId = typeof __app_id !== 'undefined' ? __app_id : 'cartocor-motors-default';
+                            const appId = 'cartocor-motors-production';
                             await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'motors_list', deleteTargetId));
                         }
                     } catch (err) {
@@ -219,7 +218,7 @@
                     if (window.firebaseModules && userId) {
                         const { getFirestore, setDoc, doc } = window.firebaseModules;
                         const db = getFirestore();
-                        const appId = typeof __app_id !== 'undefined' ? __app_id : 'cartocor-motors-default';
+                        const appId = 'cartocor-motors-production';
 
                         if (editingMotor) {
                             const motorRef = doc(db, 'artifacts', appId, 'public', 'data', 'motors_list', editingMotor.id);
@@ -253,7 +252,7 @@
                     if (window.firebaseModules && userId) {
                         const { getFirestore, setDoc, doc } = window.firebaseModules;
                         const db = getFirestore();
-                        const appId = typeof __app_id !== 'undefined' ? __app_id : 'cartocor-motors-default';
+                        const appId = 'cartocor-motors-production';
                         await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'motors_list', id), updated, { merge: true });
                     }
                 } catch (err) {
@@ -265,7 +264,7 @@
             };
 
             return (
-                <div className="flex flex-col h-full bg-slate-50 text-slate-900">
+                <div className="flex flex-col h-full bg-slate-50 text-slate-900 min-h-screen">
                     <header className="bg-white border-b border-slate-200 px-6 py-3.5 flex flex-col md:flex-row justify-between items-center gap-4 shadow-sm shrink-0">
                         <div className="flex items-center gap-4">
                             <svg viewBox="0 0 280 65" className="h-11 w-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -351,7 +350,7 @@
                         </button>
                     </div>
 
-                    <main className="flex-1 overflow-hidden relative flex flex-col p-6">
+                    <main className="flex-1 relative flex flex-col p-6 overflow-y-auto">
                         {activeTab === 'table' ? (
                             <TableView 
                                 motors={filteredMotors}
@@ -377,7 +376,7 @@
                                         if (window.firebaseModules && userId) {
                                             const { getFirestore, setDoc, doc } = window.firebaseModules;
                                             const db = getFirestore();
-                                            const appId = typeof __app_id !== 'undefined' ? __app_id : 'cartocor-motors-default';
+                                            const appId = 'cartocor-motors-production';
                                             await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'motors_list', id), updated, { merge: true });
                                         }
                                     } catch (err) {
@@ -618,7 +617,7 @@
             const filteredMotors = planFilter === 'Todos' ? motors : motors.filter(m => m.location === planFilter);
 
             return (
-                <div className="flex flex-col h-full gap-4 overflow-hidden">
+                <div className="flex flex-col h-full gap-4 overflow-hidden min-h-[500px]">
                     <div className="flex flex-wrap justify-between items-center bg-white border border-slate-200 p-4 rounded-2xl gap-4 shrink-0 shadow-sm">
                         <div>
                             <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
@@ -652,7 +651,7 @@
                     </div>
 
                     <div 
-                        className="flex-1 bg-white border border-slate-200 rounded-2xl relative overflow-hidden shadow-inner flex items-center justify-center select-none"
+                        className="flex-1 bg-white border border-slate-200 rounded-2xl relative overflow-hidden shadow-inner flex items-center justify-center select-none min-h-[450px]"
                         onDragOver={handleDragOver}
                         onDrop={handleDrop}
                     >
