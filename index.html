@@ -8,7 +8,6 @@
     <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
         body { font-family: 'Inter', sans-serif; }
@@ -55,7 +54,7 @@
                         <div className="p-8 max-w-lg mx-auto mt-20 bg-red-50 border border-red-200 rounded-2xl text-center shadow-lg">
                             <h2 className="text-lg font-bold text-red-900 mb-2">¡Ups! Algo no cargó correctamente</h2>
                             <p className="text-xs text-red-700 mb-4 font-mono">{this.state.error && this.state.error.toString()}</p>
-                            <button onClick={() => window.location.reload()} className="bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-bold">
+                            <button onClick={() => window.location.reload()} className="bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-slate-800">
                                 Recargar Página
                             </button>
                         </div>
@@ -80,19 +79,19 @@
         })();
 
         const INITIAL_MOTORS = [
-            { id: '1', tag: 'MOT-001', power: '15 HP', rpm: '1450', flange: 'Con brida', location: 'Sala de Máquina', condition: 'En funcionamiento', description: 'Bomba principal de vacío - Máquina de Papel', x: 65, y: 35, palletNum: null },
-            { id: '2', tag: 'MOT-002', power: '7.5 HP', rpm: '2900', flange: 'Sin brida', location: 'Depósito', condition: 'Esperando repuesto', description: 'Motor de repuesto para sección húmeda', x: 25, y: 30, palletNum: 1 },
-            { id: '3', tag: 'MOT-003', power: '30 HP', rpm: '980', flange: 'Con brida', location: 'Planta Sector A', condition: 'En reparación', description: 'Ventilador de tiro forzado sector hornos', x: 70, y: 75, palletNum: null },
-            { id: '4', tag: 'MOT-004', power: '5 HP', rpm: '1450', flange: 'Sin brida', location: 'Depósito', condition: 'En funcionamiento', description: 'Stock disponible en estantería central A-3', x: 18, y: 65, palletNum: 2 },
-            { id: '5', tag: 'MOT-005', power: '20 HP', rpm: '1450', flange: 'Con brida', location: 'Taller de Mantenimiento', condition: 'Retirado', description: 'Motor antiguo dado de baja por obsolescencia', x: 35, y: 80, palletNum: null },
-            { id: '6', tag: 'MOT-006', power: '10 HP', rpm: '2900', flange: 'Con brida', location: 'Depósito', condition: 'En funcionamiento', description: 'Compresor de instrumentación auxiliar', x: 55, y: 55, palletNum: 7 }
+            { id: '1', tag: 'MOT-001', power: '15 HP', rpm: '1450', flange: 'Con brida', location: 'Sala de Máquina', condition: 'En funcionamiento', description: 'Bomba principal de vacío - Máquina de Papel', x: 65, y: 35, palletNum: null, rack: '', floor: '', pallet: '' },
+            { id: '2', tag: 'MOT-002', power: '7.5 HP', rpm: '2900', flange: 'Sin brida', location: 'Depósito', condition: 'Esperando repuesto', description: 'Motor de repuesto sección húmeda', x: 25, y: 30, palletNum: 1, rack: 'Rack 1', floor: 'Piso 1', pallet: 'Tarima 1' },
+            { id: '3', tag: 'MOT-003', power: '30 HP', rpm: '980', flange: 'Con brida', location: 'Planta Sector A', condition: 'En reparación', description: 'Ventilador de tiro forzado sector hornos', x: 70, y: 75, palletNum: null, rack: '', floor: '', pallet: '' },
+            { id: '4', tag: 'MOT-004', power: '5 HP', rpm: '1450', flange: 'Sin brida', location: 'Depósito', condition: 'En funcionamiento', description: 'Stock disponible en estantería central A-3', x: 18, y: 65, palletNum: 2, rack: 'Rack 1', floor: 'Piso 1', pallet: 'Tarima 2' },
+            { id: '5', tag: 'MOT-005', power: '20 HP', rpm: '1450', flange: 'Con brida', location: 'Taller de Mantenimiento', condition: 'Retirado', description: 'Motor antiguo dado de baja por obsolescencia', x: 35, y: 80, palletNum: null, rack: '', floor: '', pallet: '' },
+            { id: '6', tag: 'MOT-006', power: '10 HP', rpm: '2900', flange: 'Con brida', location: 'Depósito', condition: 'En funcionamiento', description: 'Compresor de instrumentación auxiliar', x: 55, y: 55, palletNum: 7, rack: 'Rack 2', floor: 'Piso 1', pallet: 'Tarima 1' }
         ];
 
         const CONDITION_COLORS = {
-            'En funcionamiento': { bg: 'bg-emerald-50', text: 'text-emerald-900', border: 'border-emerald-300', badge: 'bg-[#78BC1B]', hex: '#78BC1B' },
-            'Esperando repuesto': { bg: 'bg-amber-50', text: 'text-amber-900', border: 'border-amber-300', badge: 'bg-amber-500', hex: '#d97706' },
-            'En reparación': { bg: 'bg-orange-50', text: 'text-orange-900', border: 'border-orange-300', badge: 'bg-orange-500', hex: '#ea580c' },
-            'Retirado': { bg: 'bg-slate-100', text: 'text-slate-800', border: 'border-slate-300', badge: 'bg-slate-500', hex: '#64748b' }
+            'En funcionamiento': { bg: 'bg-emerald-50', text: 'text-emerald-900', border: 'border-emerald-300', hex: '#78BC1B' },
+            'Esperando repuesto': { bg: 'bg-amber-50', text: 'text-amber-900', border: 'border-amber-300', hex: '#d97706' },
+            'En reparación': { bg: 'bg-orange-50', text: 'text-orange-900', border: 'border-orange-300', hex: '#ea580c' },
+            'Retirado': { bg: 'bg-slate-100', text: 'text-slate-800', border: 'border-slate-300', hex: '#64748b' }
         };
 
         function App() {
@@ -172,12 +171,6 @@
                 };
                 initFirebase();
             }, []);
-
-            useEffect(() => {
-                if (window.lucide) {
-                    try { window.lucide.createIcons(); } catch(err) { console.error(err); }
-                }
-            }, [motors, activeTab, isModalOpen, modalMessage, deleteTargetId, isFirebaseConnected]);
 
             const showToast = (msg) => {
                 setToast(msg);
@@ -367,7 +360,7 @@
                         {(stats.depotStock <= 1 || stats.repairingOrWaiting > 0) && (
                             <div className="bg-amber-50 border-b border-amber-200 px-6 py-2.5 flex items-center justify-between gap-4 text-xs text-amber-900 shrink-0">
                                 <div className="flex items-center gap-2 font-medium">
-                                    <i data-lucide="alert-triangle" className="w-4 h-4 text-amber-600 shrink-0"></i>
+                                    <svg className="w-4 h-4 text-amber-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                                     <span>
                                         <strong>Alerta Operativa Cartocor:</strong> {stats.depotStock <= 1 ? 'Stock operativo en depósito bajo (≤ 1 unidad disponible).' : ''} {stats.repairingOrWaiting > 0 ? `${stats.repairingOrWaiting} motor(es) pendientes por reparación o repuesto.` : ''}
                                     </span>
@@ -387,21 +380,18 @@
                                     onClick={() => setActiveTab('table')}
                                     className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'table' ? 'bg-slate-900 text-white shadow' : 'text-slate-600 hover:text-slate-900'}`}
                                 >
-                                    <i data-lucide="table" className="w-4 h-4"></i>
                                     Registro (Tabla)
                                 </button>
                                 <button 
                                     onClick={() => setActiveTab('warehouse')}
                                     className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'warehouse' ? 'bg-slate-900 text-white shadow' : 'text-slate-600 hover:text-slate-900'}`}
                                 >
-                                    <i data-lucide="box" className="w-4 h-4 text-[#78BC1B]"></i>
                                     Depósito (Tarimas 1-24)
                                 </button>
                                 <button 
                                     onClick={() => setActiveTab('plan')}
                                     className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'plan' ? 'bg-slate-900 text-white shadow' : 'text-slate-600 hover:text-slate-900'}`}
                                 >
-                                    <i data-lucide="map" className="w-4 h-4"></i>
                                     Plano Lay Out Interactivo
                                 </button>
                             </div>
@@ -410,8 +400,7 @@
                                 onClick={handleOpenAddModal}
                                 className="bg-[#78BC1B] hover:bg-[#68a417] text-white font-bold px-5 py-2 rounded-xl text-sm flex items-center gap-2 shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98]"
                             >
-                                <i data-lucide="plus-circle" className="w-4 h-4"></i>
-                                Agregar Motor
+                                + Agregar Motor
                             </button>
                         </div>
 
@@ -456,9 +445,6 @@
                         {deleteTargetId && (
                             <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
                                 <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-sm p-6 shadow-2xl text-center">
-                                    <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-3">
-                                        <i data-lucide="trash-2" className="w-6 h-6"></i>
-                                    </div>
                                     <h3 className="text-base font-bold text-slate-900 mb-2">¿Eliminar Motor?</h3>
                                     <p className="text-xs text-slate-600 mb-6">Esta acción eliminará permanentemente el motor seleccionado del registro de Cartocor.</p>
                                     <div className="flex gap-3">
@@ -482,9 +468,6 @@
                         {modalMessage && (
                             <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
                                 <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-sm p-6 shadow-2xl text-center">
-                                    <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-3">
-                                        <i data-lucide="alert-circle" className="w-6 h-6"></i>
-                                    </div>
                                     <h3 className="text-base font-bold text-slate-900 mb-2">Aviso del Sistema</h3>
                                     <p className="text-xs text-slate-600 mb-6">{modalMessage}</p>
                                     <button 
@@ -498,8 +481,8 @@
                         )}
 
                         {toast && (
-                            <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 border border-slate-800 animate-bounce">
-                                <i data-lucide="check-circle-2" className="w-5 h-5" style={{ color: '#78BC1B' }}></i>
+                            <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 border border-slate-800">
+                                <span className="w-2.5 h-2.5 rounded-full bg-[#78BC1B] animate-pulse"></span>
                                 <span className="text-sm font-medium">{toast}</span>
                             </div>
                         )}
@@ -514,13 +497,12 @@
                     <div className="bg-slate-50 border-b border-slate-200 p-4 flex flex-wrap gap-4 items-center justify-between">
                         <div className="flex flex-wrap items-center gap-3 flex-1">
                             <div className="relative min-w-[240px] flex-1">
-                                <i data-lucide="search" className="w-4 h-4 text-slate-400 absolute left-3.5 top-3"></i>
                                 <input 
                                     type="text" 
                                     placeholder="Buscar por tag, tarima, descripción..." 
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="w-full bg-white border border-slate-300 rounded-xl pl-10 pr-4 py-2 text-sm text-slate-900 focus:outline-none focus:border-slate-900 shadow-sm"
+                                    className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2 text-sm text-slate-900 focus:outline-none focus:border-slate-900 shadow-sm"
                                 />
                             </div>
 
@@ -578,7 +560,6 @@
                                 {motors.length === 0 ? (
                                     <tr>
                                         <td colSpan="8" className="text-center py-16 text-slate-400">
-                                            <i data-lucide="folder-open" className="w-10 h-10 mx-auto mb-2 opacity-40"></i>
                                             No se encontraron registros.
                                         </td>
                                     </tr>
@@ -608,7 +589,6 @@
                                                 <td className="py-3 px-4">
                                                     {motor.location === 'Depósito' ? (
                                                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-emerald-50 text-emerald-900 border border-emerald-200">
-                                                            <i data-lucide="box" className="w-3.5 h-3.5 text-[#78BC1B]"></i>
                                                             Tarima #{motor.palletNum || 1} ({motor.rack || 'Rack 1'} - {motor.floor || 'Piso 1'})
                                                         </span>
                                                     ) : (
@@ -637,14 +617,14 @@
                                                             className="p-1.5 hover:bg-slate-200 rounded-lg text-slate-600 hover:text-slate-900 transition-colors"
                                                             title="Editar motor"
                                                         >
-                                                            <i data-lucide="edit-3" className="w-4 h-4"></i>
+                                                            Editar
                                                         </button>
                                                         <button 
                                                             onClick={() => onDelete(motor.id)}
                                                             className="p-1.5 hover:bg-red-100 rounded-lg text-slate-400 hover:text-red-600 transition-colors"
                                                             title="Eliminar motor"
                                                         >
-                                                            <i data-lucide="trash-2" className="w-4 h-4"></i>
+                                                            Eliminar
                                                         </button>
                                                     </div>
                                                 </td>
@@ -678,7 +658,6 @@
                     <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div>
                             <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                                <i data-lucide="box" className="w-5 h-5 text-[#78BC1B]"></i>
                                 Depósito de Motores - Tarimas Numeradas del 1 al 24
                             </h2>
                             <p className="text-xs text-slate-500 mt-1">Esquema físico de los 4 Racks. Cada tarima muestra los motores almacenados. Haz clic en un motor para editarlo.</p>
@@ -694,7 +673,6 @@
                             <div key={rackName} className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex flex-col">
                                 <div className="bg-slate-900 text-white px-4 py-3 flex items-center justify-between">
                                     <span className="font-black text-sm tracking-wide flex items-center gap-2">
-                                        <i data-lucide="layers" className="w-4 h-4 text-[#78BC1B]"></i>
                                         {rackName}
                                     </span>
                                     <span className="text-[10px] bg-white/10 px-2 py-0.5 rounded-full font-semibold">
@@ -771,18 +749,19 @@
 
         function PlanView({ motors, onUpdatePosition, onQuickUpdate, onEdit }) {
             const [selectedMotor, setSelectedMotor] = useState(null);
-            const [draggingId, setDraggingId] = useState(null);
             const [planFilter, setPlanFilter] = useState('Todos');
+            const [draggingId, setDraggingId] = useState(null);
 
             const handleDragOver = (e) => { e.preventDefault(); };
 
             const handleDrop = (e) => {
                 e.preventDefault();
-                if (!draggingId) return;
+                const id = draggingId || e.dataTransfer.getData('text/plain');
+                if (!id) return;
                 const rect = e.currentTarget.getBoundingClientRect();
                 const x = Math.max(5, Math.min(95, ((e.clientX - rect.left) / rect.width) * 100));
                 const y = Math.max(5, Math.min(95, ((e.clientY - rect.top) / rect.height) * 100));
-                onUpdatePosition(draggingId, Math.round(x), Math.round(y));
+                onUpdatePosition(id, Math.round(x), Math.round(y));
                 setDraggingId(null);
             };
 
@@ -793,7 +772,6 @@
                     <div className="flex flex-wrap justify-between items-center bg-white border border-slate-200 p-4 rounded-2xl gap-4 shrink-0 shadow-sm">
                         <div>
                             <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                                <i data-lucide="map-pin" className="w-4 h-4" style={{ color: '#78BC1B' }}></i>
                                 Lay Out Operativo - Cartocor Arroyito
                             </h2>
                             <p className="text-xs text-slate-500">Arrastra los pines libremente con el mouse sobre el plano o haz clic para ver y editar su ficha</p>
@@ -813,13 +791,6 @@
                                     <option value="Planta Sector A">Planta Sector A</option>
                                     <option value="Taller de Mantenimiento">Taller de Mantenimiento</option>
                                 </select>
-                            </div>
-
-                            <div className="hidden lg:flex items-center gap-3 text-xs bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl">
-                                <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#78BC1B' }}></span><span className="text-slate-700">Funcionando</span></div>
-                                <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span><span className="text-slate-700">Esperando repuesto</span></div>
-                                <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-orange-500"></span><span className="text-slate-700">En reparación</span></div>
-                                <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-slate-500"></span><span className="text-slate-700">Retirado</span></div>
                             </div>
                         </div>
                     </div>
@@ -875,9 +846,9 @@
                                     </div>
                                     <button 
                                         onClick={() => setSelectedMotor(null)}
-                                        className="text-slate-400 hover:text-slate-900 p-1 rounded-lg hover:bg-slate-100"
+                                        className="text-slate-400 hover:text-slate-900 p-1 rounded-lg hover:bg-slate-100 font-bold"
                                     >
-                                        <i data-lucide="x" className="w-4 h-4"></i>
+                                        ✕
                                     </button>
                                 </div>
 
@@ -931,7 +902,7 @@
                                         }}
                                         className="flex-1 bg-slate-900 hover:bg-slate-800 text-white py-2 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 shadow-sm"
                                     >
-                                        <i data-lucide="edit-3" className="w-3.5 h-3.5"></i> Editar Ficha
+                                        Editar Ficha
                                     </button>
                                 </div>
                             </div>
@@ -947,11 +918,10 @@
                     <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-in fade-in zoom-in-95">
                         <div className="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
                             <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                                <i data-lucide={isEditing ? "edit-3" : "plus-circle"} className="w-5 h-5 text-emerald-600"></i>
                                 {isEditing ? 'Editar Ficha de Motor' : 'Registrar Nuevo Motor'}
                             </h3>
-                            <button onClick={onClose} className="text-slate-400 hover:text-slate-900 p-1 rounded-lg hover:bg-slate-100">
-                                <i data-lucide="x" className="w-5 h-5"></i>
+                            <button onClick={onClose} className="text-slate-400 hover:text-slate-900 p-1 rounded-lg hover:bg-slate-100 font-bold">
+                                ✕
                             </button>
                         </div>
 
@@ -1036,7 +1006,6 @@
                             {formData.location === 'Depósito' && (
                                 <div className="bg-emerald-50/60 border border-emerald-200 p-4 rounded-2xl space-y-2">
                                     <label className="block text-xs font-bold uppercase tracking-wider text-emerald-900 flex items-center gap-1.5">
-                                        <i data-lucide="box" className="w-4 h-4 text-[#78BC1B]"></i>
                                         Seleccionar Tarima en el Depósito (1 al 24)
                                     </label>
                                     <select 
