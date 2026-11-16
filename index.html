@@ -38,33 +38,6 @@
     <script type="text/babel">
         const { useState, useEffect, useMemo, Component } = React;
 
-        class ErrorBoundary extends Component {
-            constructor(props) {
-                super(props);
-                this.state = { hasError: false, error: null };
-            }
-            static getDerivedStateFromError(error) {
-                return { hasError: true, error };
-            }
-            componentDidCatch(error, errorInfo) {
-                console.error("Error en React:", error, errorInfo);
-            }
-            render() {
-                if (this.state.hasError) {
-                    return (
-                        <div className="p-8 max-w-lg mx-auto mt-20 bg-red-50 border border-red-200 rounded-2xl text-center shadow-lg">
-                            <h2 className="text-lg font-bold text-red-900 mb-2">¡Ups! Algo no cargó correctamente</h2>
-                            <p className="text-xs text-red-700 mb-4 font-mono">{this.state.error && this.state.error.toString()}</p>
-                            <button onClick={() => window.location.reload()} className="bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-bold">
-                                Recargar Página
-                            </button>
-                        </div>
-                    );
-                }
-                return this.props.children;
-            }
-        }
-
         const WAREHOUSE_SLOTS = (() => {
             const slots = [];
             let num = 1;
@@ -225,7 +198,7 @@
             const handleOpenEditModal = (motor) => {
                 setEditingMotor(motor);
                 setFormData({ 
-                    palletNum: 1,
+                    palletNum: motor.palletNum || 1,
                     ...motor 
                 });
                 setIsModalOpen(true);
@@ -321,190 +294,188 @@
             };
 
             return (
-                <ErrorBoundary>
-                    <div className="flex flex-col h-full bg-slate-50 text-slate-900 min-h-screen">
-                        <header className="bg-white border-b border-slate-200 px-6 py-3.5 flex flex-col md:flex-row justify-between items-center gap-4 shadow-sm shrink-0">
-                            <div className="flex items-center gap-4">
-                                <svg viewBox="0 0 280 65" className="h-11 w-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <g transform="translate(2, 2)">
-                                        <path d="M42 8C35 4 25 3 17 8C7 14 2 25 4 37C6 48 15 56 27 57C36 57 44 53 49 48" stroke="#6E6E6E" strokeWidth="6.5" strokeLinecap="round"/>
-                                        <path d="M30 14C35 15 42 20 44 26C46 32 38 38 42 44" stroke="#78BC1B" strokeWidth="5.5" strokeLinecap="round" fill="none"/>
-                                        <path d="M22 18C27 21 34 26 33 33" stroke="#78BC1B" strokeWidth="4.5" strokeLinecap="round" fill="none"/>
-                                    </g>
-                                    <text x="70" y="42" fontFamily="'Inter', sans-serif" fontWeight="900" fontSize="28" fill="#6E6E6E" letterSpacing="0.5">CARTOCOR</text>
-                                </svg>
-                                <div className="hidden sm:block border-l border-slate-300 pl-4">
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Arroyito CBA - Planta Papel</span>
-                                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${isFirebaseConnected ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}`}>
-                                            <span className={`w-1.5 h-1.5 rounded-full ${isFirebaseConnected ? 'bg-emerald-600 animate-pulse' : 'bg-slate-400'}`}></span>
-                                            {isFirebaseConnected ? 'Nube Sincronizada' : 'Modo Local'}
-                                        </span>
-                                    </div>
-                                    <h1 className="text-sm font-black text-slate-900">Gestión de Motores y Depósito (Tarimas 1-24)</h1>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center gap-3">
-                                <div className="bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-xl flex items-center gap-2 text-xs">
-                                    <span className="w-2.5 h-2.5 rounded-full bg-slate-900"></span>
-                                    <span className="text-slate-600 font-medium">Total:</span>
-                                    <span className="font-bold text-slate-900">{stats.total}</span>
-                                </div>
-                                <div className="bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-xl flex items-center gap-2 text-xs">
-                                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#78BC1B' }}></span>
-                                    <span className="text-slate-600 font-medium">Stock Depósito:</span>
-                                    <span className="font-bold text-slate-900">{stats.depotStock}</span>
-                                </div>
-                                <div className="bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-xl flex items-center gap-2 text-xs">
-                                    <span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
-                                    <span className="text-slate-600 font-medium">En Planta:</span>
-                                    <span className="font-bold text-slate-900">{stats.inPlant}</span>
-                                </div>
-                            </div>
-                        </header>
-
-                        {(stats.depotStock <= 1 || stats.repairingOrWaiting > 0) && (
-                            <div className="bg-amber-50 border-b border-amber-200 px-6 py-2.5 flex items-center justify-between gap-4 text-xs text-amber-900 shrink-0">
-                                <div className="flex items-center gap-2 font-medium">
-                                    <i data-lucide="alert-triangle" className="w-4 h-4 text-amber-600 shrink-0"></i>
-                                    <span>
-                                        <strong>Alerta Operativa Cartocor:</strong> {stats.depotStock <= 1 ? 'Stock operativo en depósito bajo (≤ 1 unidad disponible).' : ''} {stats.repairingOrWaiting > 0 ? `${stats.repairingOrWaiting} motor(es) pendientes por reparación o repuesto.` : ''}
+                <div className="flex flex-col h-full bg-slate-50 text-slate-900 min-h-screen">
+                    <header className="bg-white border-b border-slate-200 px-6 py-3.5 flex flex-col md:flex-row justify-between items-center gap-4 shadow-sm shrink-0">
+                        <div className="flex items-center gap-4">
+                            <svg viewBox="0 0 280 65" className="h-11 w-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <g transform="translate(2, 2)">
+                                    <path d="M42 8C35 4 25 3 17 8C7 14 2 25 4 37C6 48 15 56 27 57C36 57 44 53 49 48" stroke="#6E6E6E" strokeWidth="6.5" strokeLinecap="round"/>
+                                    <path d="M30 14C35 15 42 20 44 26C46 32 38 38 42 44" stroke="#78BC1B" strokeWidth="5.5" strokeLinecap="round" fill="none"/>
+                                    <path d="M22 18C27 21 34 26 33 33" stroke="#78BC1B" strokeWidth="4.5" strokeLinecap="round" fill="none"/>
+                                </g>
+                                <text x="70" y="42" fontFamily="'Inter', sans-serif" fontWeight="900" fontSize="28" fill="#6E6E6E" letterSpacing="0.5">CARTOCOR</text>
+                            </svg>
+                            <div className="hidden sm:block border-l border-slate-300 pl-4">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Arroyito CBA - Planta Papel</span>
+                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${isFirebaseConnected ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}`}>
+                                        <span className={`w-1.5 h-1.5 rounded-full ${isFirebaseConnected ? 'bg-emerald-600 animate-pulse' : 'bg-slate-400'}`}></span>
+                                        {isFirebaseConnected ? 'Nube Sincronizada' : 'Modo Local'}
                                     </span>
                                 </div>
-                                <button 
-                                    onClick={() => { setActiveTab('table'); setFilterCondition('Esperando repuesto'); }}
-                                    className="underline font-bold hover:text-amber-950 shrink-0"
-                                >
-                                    Ver pendientes
-                                </button>
+                                <h1 className="text-sm font-black text-slate-900">Gestión de Motores y Depósito (Tarimas 1-24)</h1>
                             </div>
-                        )}
+                        </div>
 
-                        <div className="bg-white border-b border-slate-200 px-6 py-3 flex flex-wrap justify-between items-center gap-4 shrink-0">
-                            <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
-                                <button 
-                                    onClick={() => setActiveTab('table')}
-                                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'table' ? 'bg-slate-900 text-white shadow' : 'text-slate-600 hover:text-slate-900'}`}
-                                >
-                                    <i data-lucide="table" className="w-4 h-4"></i>
-                                    Registro (Tabla)
-                                </button>
-                                <button 
-                                    onClick={() => setActiveTab('warehouse')}
-                                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'warehouse' ? 'bg-slate-900 text-white shadow' : 'text-slate-600 hover:text-slate-900'}`}
-                                >
-                                    <i data-lucide="box" className="w-4 h-4 text-[#78BC1B]"></i>
-                                    Depósito (Tarimas 1-24)
-                                </button>
-                                <button 
-                                    onClick={() => setActiveTab('plan')}
-                                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'plan' ? 'bg-slate-900 text-white shadow' : 'text-slate-600 hover:text-slate-900'}`}
-                                >
-                                    <i data-lucide="map" className="w-4 h-4"></i>
-                                    Plano Lay Out Interactivo
-                                </button>
+                        <div className="flex items-center gap-3">
+                            <div className="bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-xl flex items-center gap-2 text-xs">
+                                <span className="w-2.5 h-2.5 rounded-full bg-slate-900"></span>
+                                <span className="text-slate-600 font-medium">Total:</span>
+                                <span className="font-bold text-slate-900">{stats.total}</span>
                             </div>
+                            <div className="bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-xl flex items-center gap-2 text-xs">
+                                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#78BC1B' }}></span>
+                                <span className="text-slate-600 font-medium">Stock Depósito:</span>
+                                <span className="font-bold text-slate-900">{stats.depotStock}</span>
+                            </div>
+                            <div className="bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-xl flex items-center gap-2 text-xs">
+                                <span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+                                <span className="text-slate-600 font-medium">En Planta:</span>
+                                <span className="font-bold text-slate-900">{stats.inPlant}</span>
+                            </div>
+                        </div>
+                    </header>
 
+                    {(stats.depotStock <= 1 || stats.repairingOrWaiting > 0) && (
+                        <div className="bg-amber-50 border-b border-amber-200 px-6 py-2.5 flex items-center justify-between gap-4 text-xs text-amber-900 shrink-0">
+                            <div className="flex items-center gap-2 font-medium">
+                                <i data-lucide="alert-triangle" className="w-4 h-4 text-amber-600 shrink-0"></i>
+                                <span>
+                                    <strong>Alerta Operativa Cartocor:</strong> {stats.depotStock <= 1 ? 'Stock operativo en depósito bajo (≤ 1 unidad disponible).' : ''} {stats.repairingOrWaiting > 0 ? `${stats.repairingOrWaiting} motor(es) pendientes por reparación o repuesto.` : ''}
+                                </span>
+                            </div>
                             <button 
-                                onClick={handleOpenAddModal}
-                                className="bg-[#78BC1B] hover:bg-[#68a417] text-white font-bold px-5 py-2 rounded-xl text-sm flex items-center gap-2 shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98]"
+                                onClick={() => { setActiveTab('table'); setFilterCondition('Esperando repuesto'); }}
+                                className="underline font-bold hover:text-amber-950 shrink-0"
                             >
-                                <i data-lucide="plus-circle" className="w-4 h-4"></i>
-                                Agregar Motor
+                                Ver pendientes
+                            </button>
+                        </div>
+                    )}
+
+                    <div className="bg-white border-b border-slate-200 px-6 py-3 flex flex-wrap justify-between items-center gap-4 shrink-0">
+                        <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+                            <button 
+                                onClick={() => setActiveTab('table')}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'table' ? 'bg-slate-900 text-white shadow' : 'text-slate-600 hover:text-slate-900'}`}
+                            >
+                                <i data-lucide="table" className="w-4 h-4"></i>
+                                Registro (Tabla)
+                            </button>
+                            <button 
+                                onClick={() => setActiveTab('warehouse')}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'warehouse' ? 'bg-slate-900 text-white shadow' : 'text-slate-600 hover:text-slate-900'}`}
+                            >
+                                <i data-lucide="box" className="w-4 h-4 text-[#78BC1B]"></i>
+                                Depósito (Tarimas 1-24)
+                            </button>
+                            <button 
+                                onClick={() => setActiveTab('plan')}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'plan' ? 'bg-slate-900 text-white shadow' : 'text-slate-600 hover:text-slate-900'}`}
+                            >
+                                <i data-lucide="map" className="w-4 h-4"></i>
+                                Plano Lay Out Interactivo
                             </button>
                         </div>
 
-                        <main className="flex-1 relative flex flex-col p-6 overflow-y-auto">
-                            {activeTab === 'table' ? (
-                                <TableView 
-                                    motors={filteredMotors}
-                                    allMotorsCount={motors.length}
-                                    searchTerm={searchTerm}
-                                    setSearchTerm={setSearchTerm}
-                                    filterLocation={filterLocation}
-                                    setFilterLocation={setFilterLocation}
-                                    filterCondition={filterCondition}
-                                    setFilterCondition={setFilterCondition}
-                                    onEdit={handleOpenEditModal}
-                                    onDelete={(id) => setDeleteTargetId(id)}
-                                    onQuickUpdate={handleQuickUpdate}
-                                />
-                            ) : activeTab === 'warehouse' ? (
-                                <WarehouseRacksView motors={motors} onEdit={handleOpenEditModal} />
-                            ) : (
-                                <PlanView 
-                                    motors={motors}
-                                    onUpdatePosition={handleUpdatePosition}
-                                    onQuickUpdate={handleQuickUpdate}
-                                    onEdit={handleOpenEditModal}
-                                />
-                            )}
-                        </main>
+                        <button 
+                            onClick={handleOpenAddModal}
+                            className="bg-[#78BC1B] hover:bg-[#68a417] text-white font-bold px-5 py-2 rounded-xl text-sm flex items-center gap-2 shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98]"
+                        >
+                            <i data-lucide="plus-circle" className="w-4 h-4"></i>
+                            Agregar Motor
+                        </button>
+                    </div>
 
-                        {isModalOpen && (
-                            <MotorModal 
-                                formData={formData}
-                                setFormData={setFormData}
-                                isEditing={!!editingMotor}
-                                onClose={() => setIsModalOpen(false)}
-                                onSave={handleSaveMotor}
-                                warehouseSlots={WAREHOUSE_SLOTS}
+                    <main className="flex-1 relative flex flex-col p-6 overflow-y-auto">
+                        {activeTab === 'table' ? (
+                            <TableView 
+                                motors={filteredMotors}
+                                allMotorsCount={motors.length}
+                                searchTerm={searchTerm}
+                                setSearchTerm={setSearchTerm}
+                                filterLocation={filterLocation}
+                                setFilterLocation={setFilterLocation}
+                                filterCondition={filterCondition}
+                                setFilterCondition={setFilterCondition}
+                                onEdit={handleOpenEditModal}
+                                onDelete={(id) => setDeleteTargetId(id)}
+                                onQuickUpdate={handleQuickUpdate}
+                            />
+                        ) : activeTab === 'warehouse' ? (
+                            <WarehouseRacksView motors={motors} onEdit={handleOpenEditModal} />
+                        ) : (
+                            <PlanView 
+                                motors={motors}
+                                onUpdatePosition={handleUpdatePosition}
+                                onQuickUpdate={handleQuickUpdate}
+                                onEdit={handleOpenEditModal}
                             />
                         )}
+                    </main>
 
-                        {deleteTargetId && (
-                            <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
-                                <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-sm p-6 shadow-2xl text-center">
-                                    <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-3">
-                                        <i data-lucide="trash-2" className="w-6 h-6"></i>
-                                    </div>
-                                    <h3 className="text-base font-bold text-slate-900 mb-2">¿Eliminar Motor?</h3>
-                                    <p className="text-xs text-slate-600 mb-6">Esta acción eliminará permanentemente el motor seleccionado del registro de Cartocor.</p>
-                                    <div className="flex gap-3">
-                                        <button 
-                                            onClick={() => setDeleteTargetId(null)}
-                                            className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2.5 rounded-xl text-xs transition-colors"
-                                        >
-                                            Cancelar
-                                        </button>
-                                        <button 
-                                            onClick={() => executeDelete(deleteTargetId)}
-                                            className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-2.5 rounded-xl text-xs transition-colors shadow-sm"
-                                        >
-                                            Sí, eliminar
-                                        </button>
-                                    </div>
+                    {isModalOpen && (
+                        <MotorModal 
+                            formData={formData}
+                            setFormData={setFormData}
+                            isEditing={!!editingMotor}
+                            onClose={() => setIsModalOpen(false)}
+                            onSave={handleSaveMotor}
+                            warehouseSlots={WAREHOUSE_SLOTS}
+                        />
+                    )}
+
+                    {deleteTargetId && (
+                        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+                            <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-sm p-6 shadow-2xl text-center">
+                                <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i data-lucide="trash-2" className="w-6 h-6"></i>
                                 </div>
-                            </div>
-                        )}
-
-                        {modalMessage && (
-                            <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
-                                <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-sm p-6 shadow-2xl text-center">
-                                    <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-3">
-                                        <i data-lucide="alert-circle" className="w-6 h-6"></i>
-                                    </div>
-                                    <h3 className="text-base font-bold text-slate-900 mb-2">Aviso del Sistema</h3>
-                                    <p className="text-xs text-slate-600 mb-6">{modalMessage}</p>
+                                <h3 className="text-base font-bold text-slate-900 mb-2">¿Eliminar Motor?</h3>
+                                <p className="text-xs text-slate-600 mb-6">Esta acción eliminará permanentemente el motor seleccionado del registro de Cartocor.</p>
+                                <div className="flex gap-3">
                                     <button 
-                                        onClick={() => setModalMessage(null)}
-                                        className="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 rounded-xl text-xs transition-colors"
+                                        onClick={() => setDeleteTargetId(null)}
+                                        className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2.5 rounded-xl text-xs transition-colors"
                                     >
-                                        Entendido
+                                        Cancelar
+                                    </button>
+                                    <button 
+                                        onClick={() => executeDelete(deleteTargetId)}
+                                        className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-2.5 rounded-xl text-xs transition-colors shadow-sm"
+                                    >
+                                        Sí, eliminar
                                     </button>
                                 </div>
                             </div>
-                        )}
+                        </div>
+                    )}
 
-                        {toast && (
-                            <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 border border-slate-800 animate-bounce">
-                                <i data-lucide="check-circle-2" className="w-5 h-5" style={{ color: '#78BC1B' }}></i>
-                                <span className="text-sm font-medium">{toast}</span>
+                    {modalMessage && (
+                        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+                            <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-sm p-6 shadow-2xl text-center">
+                                <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i data-lucide="alert-circle" className="w-6 h-6"></i>
+                                </div>
+                                <h3 className="text-base font-bold text-slate-900 mb-2">Aviso del Sistema</h3>
+                                <p className="text-xs text-slate-600 mb-6">{modalMessage}</p>
+                                <button 
+                                    onClick={() => setModalMessage(null)}
+                                    className="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 rounded-xl text-xs transition-colors"
+                                >
+                                    Entendido
+                                </button>
                             </div>
-                        )}
-                    </div>
-                </ErrorBoundary>
+                        </div>
+                    )}
+
+                    {toast && (
+                        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 border border-slate-800 animate-bounce">
+                            <i data-lucide="check-circle-2" className="w-5 h-5" style={{ color: '#78BC1B' }}></i>
+                            <span className="text-sm font-medium">{toast}</span>
+                        </div>
+                    )}
+                </div>
             );
         }
 
