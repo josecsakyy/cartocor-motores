@@ -1,0 +1,100 @@
+import { CONDITIONS, DEFAULT_USER, DEPOT, FLANGES, LOCATIONS } from './constants';
+import { getSlot, isValidPallet, palletFromLegacyFields } from './warehouse';
+
+/** Fecha local (no UTC) en formato AAAA-MM-DD. */
+export const todayISO = () => {
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
+
+export const newId = () =>
+  globalThis.crypto?.randomUUID?.() ?? `m_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+
+const str = (value) => (value === null || value === undefined ? '' : String(value).trim());
+
+const clampPercent = (value, fallback) => {
+  const n = Number(value);
+  return Number.isFinite(n) ? Math.min(98, Math.max(2, n)) : fallback;
+};
+
+export const createHistoryEntry = (action, notes = '', user = DEFAULT_USER) => ({
+  date: todayISO(),
+  action: str(action),
+  user: str(user) || DEFAULT_USER,
+  notes: str(notes) || 'Sin observaciones adicionales.',
+});
+
+/**
+ * Convierte cualquier registro (Firestore, localStorage, Excel, formulario)
+ * en un motor con forma garantizada. Es el único lugar donde se decide
+ * qué campos tiene un motor y qué valores son válidos.
+ */
+export const normalizeMotor = (raw, id = raw?.id) => {
+  const location = LOCATIONS.includes(raw?.location) ? raw.location : LOCATIONS[1];
+  let palletNum = null;
+  if (location === DEPOT) {
+    palletNum = isValidPallet(raw?.palletNum) ? Number(raw.palletNum) : (palletFromLegacyFields(raw ?? {}) ?? 1);
+  }
+
+  return {
+    id: str(id),
+    tag: str(raw?.tag),
+    code: str(raw?.code),
+    power: str(raw?.power),
+    rpm: str(raw?.rpm),
+    flange: FLANGES.includes(raw?.flange) ? raw.flange : FLANGES[0],
+    location,
+    palletNum,
+    condition: CONDITIONS.includes(raw?.condition) ? raw.condition : CONDITIONS[0],
+    description: str(raw?.description),
+    x: clampPercent(raw?.x, 50),
+    y: clampPercent(raw?.y, 50),
+    history: Array.isArray(raw?.history)
+      ? raw.history.filter(Boolean).map((h) => ({
+          date: str(h.date),
+          action: str(h.action),
+          user: str(h.user),
+          notes: str(h.notes),
+        }))
+      : [],
+  };
+};
+
+/** Objeto listo para guardar: sin campos undefined y con rack/piso/tarima derivados (compatibilidad). */
+export const toStorage = (motor) => {
+  const m = normalizeMotor(motor);
+  const slot = getSlot(m.palletNum);
+  return { ...m, rack: slot?.rack ?? '', floor: slot?.floor ?? '', pallet: slot?.pallet ?? '' };
+};
+
+/** Cambia la ubicación respetando la regla: en Depósito siempre hay tarima, fuera de él nunca. */
+export const withLocation = (motor, location, palletNum) => {
+  if (location !== DEPOT) return { ...motor, location, palletNum: null };
+  const pallet = isValidPallet(palletNum) ? Number(palletNum) : isValidPallet(motor.palletNum) ? motor.palletNum : 1;
+  return { ...motor, location, palletNum: pallet };
+};
+
+const nextNumber = (motors, pattern) =>
+  motors.reduce((max, m) => {
+    const match = pattern.exec(m.tag ?? '') ?? pattern.exec(m.code ?? '');
+    return match ? Math.max(max, Number(match[1])) : max;
+  }, 0) + 1;
+
+/** Próximo tag libre (no se repite aunque se hayan borrado motores). */
+export const nextTag = (motors) => `MOT-${String(nextNumber(motors, /^MOT-(\d+)$/i)).padStart(3, '0')}`;
+
+export const nextCode = (motors) => {
+  const n = motors.reduce((max, m) => {
+    const match = /^ME-PU(\d+)$/i.exec(m.code ?? '');
+    return match ? Math.max(max, Number(match[1])) : max;
+  }, 0);
+  return `ME-PU${String(n + 1).padStart(2, '0')}`;
+};
+
+export const searchableText = (m) =>
+  [m.tag, m.code, m.description, m.power, m.rpm, m.location, m.palletNum ? `tarima #${m.palletNum}` : '']
+    .join(' ')
+    .toLowerCase();
+
+export const compareByTag = (a, b) => a.tag.localeCompare(b.tag, 'es', { numeric: true });
