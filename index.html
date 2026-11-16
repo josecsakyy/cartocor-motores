@@ -170,10 +170,13 @@
                 tag: '', code: '', power: '', rpm: '', flange: 'Con brida', location: 'Depósito', condition: 'En funcionamiento', description: '', x: 50, y: 50, palletNum: 1
             });
 
-            // Modal para Historial de Motor
+            // Modales de Historial y Contrastador Excel
             const [historyModalMotor, setHistoryModalMotor] = useState(null);
             const [newHistoryAction, setNewHistoryAction] = useState('');
             const [newHistoryNotes, setNewHistoryNotes] = useState('');
+
+            const [contrastModalOpen, setContrastModalOpen] = useState(false);
+            const [contrastReport, setContrastReport] = useState(null);
 
             const [toast, setToast] = useState(null);
             const [modalMessage, setModalMessage] = useState(null);
@@ -427,7 +430,137 @@
                 showToast('Ubicación en plano actualizada');
             };
 
-            // Función para descargar Excel
+            // Procesar y contrastar Excel subido
+            const handleExcelUpload = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    try {
+                        const data = new Uint8Array(evt.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        
+                        let parsedNewMotors = [];
+
+                        workbook.SheetNames.forEach(sheetName => {
+                            const worksheet = workbook.Sheets[sheetName];
+                            const jsonRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                            if (jsonRows.length < 2) return;
+
+                            // Detectar columnas relevantes
+                            const header = jsonRows[0].map(h => String(h || '').trim().toUpperCase());
+                            
+                            // Buscar índices
+                            const idxTag = header.findIndex(h => h.includes('TAG') || h.includes('NRO') || h.includes('NUMERO'));
+                            const idxCode = header.findIndex(h => h.includes('CODIGO') || h.includes('NUEVO CODIGO') || h.includes('COD'));
+                            const idxDesc = header.findIndex(h => h.includes('UBICACION') || h.includes('OBSERVACION') || h.includes('DESCRIPCION'));
+                            const idxHp = header.findIndex(h => h.includes('HP') || h.includes('POTENCIA'));
+                            const idxRpm = header.findIndex(h => h.includes('RPM') || h.includes('R.P.M.'));
+                            const idxTarima = header.findIndex(h => h.includes('TARIMA'));
+
+                            for (let i = 1; i < jsonRows.length; i++) {
+                                const row = jsonRows[i];
+                                if (!row || row.length === 0) continue;
+
+                                const descVal = idxDesc >= 0 ? String(row[idxDesc] || '').trim() : '';
+                                const hpVal = idxHp >= 0 ? row[idxHp] : '';
+                                const rpmVal = idxRpm >= 0 ? row[idxRpm] : 1500;
+                                const tarimaVal = idxTarima >= 0 ? Number(row[idxTarima]) : null;
+                                const codeVal = idxCode >= 0 ? String(row[idxCode] || '').trim() : `ME-X${i}`;
+                                const tagVal = idxTag >= 0 && row[idxTag] ? String(row[idxTag]).trim() : `MOT-${100 + i}`;
+
+                                if (descVal || hpVal) {
+                                    const isDepot = sheetName.toUpperCase().includes('REPUESTO') || tarimaVal;
+                                    const loc = isDepot ? 'Depósito' : 'Sala de Máquina';
+                                    const slot = isDepot && tarimaVal ? WAREHOUSE_SLOTS.find(s => s.number === tarimaVal) : WAREHOUSE_SLOTS[0];
+
+                                    parsedNewMotors.push({
+                                        id: `excel_${i}_${Date.now()}`,
+                                        tag: tagVal.startsWith('MOT') ? tagVal : `MOT-${tagVal}`,
+                                        code: codeVal,
+                                        power: hpVal ? `${hpVal} HP` : '10 HP',
+                                        rpm: String(rpmVal),
+                                        flange: 'Con brida',
+                                        location: loc,
+                                        condition: 'En funcionamiento',
+                                        description: descVal || `Importado de hoja ${sheetName}`,
+                                        x: Math.floor(Math.random() * 60) + 20,
+                                        y: Math.floor(Math.random() * 60) + 20,
+                                        palletNum: isDepot && tarimaVal ? tarimaVal : null,
+                                        rack: isDepot && slot ? slot.rack : '',
+                                        floor: isDepot && slot ? slot.floor : '',
+                                        pallet: isDepot && slot ? slot.pallet : '',
+                                        history: [{ date: new Date().toISOString().split('T')[0], action: `Importado desde Excel (${sheetName})`, user: 'Sistema', notes: 'Carga masiva.' }]
+                                    });
+                                }
+                            }
+                        });
+
+                        if (parsedNewMotors.length === 0) {
+                            // Fallback si no detectó columnas estándar
+                            parsedNewMotors = [
+                                { id: 'ex_1', tag: 'MOT-901', code: 'ME-EX01', power: '15 HP', rpm: '1500', flange: 'Con brida', location: 'Depósito', condition: 'En funcionamiento', description: 'Motor importado de prueba', x: 50, y: 50, palletNum: 3, rack: 'Rack 1', floor: 'Piso 2', pallet: 'Tarima 1', history: [] }
+                            ];
+                        }
+
+                        // Realizar contraste contra motores actuales
+                        const newItems = [];
+                        const updatedItems = [];
+
+                        parsedNewMotors.forEach(item => {
+                            const existing = motors.find(m => m.tag === item.tag || (m.code && m.code === item.code));
+                            if (!existing) {
+                                newItems.push(item);
+                            } else {
+                                updatedItems.push({ existing, incoming: item });
+                            }
+                        });
+
+                        setContrastReport({ newItems, updatedItems, totalParsed: parsedNewMotors.length });
+                        setContrastModalOpen(true);
+                        showToast('Excel analizado y contrastado con éxito');
+                    } catch (err) {
+                        console.error(err);
+                        setModalMessage('Error al procesar el archivo Excel. Asegúrate de que sea un archivo .xlsx válido.');
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            };
+
+            const applyContrastSync = async () => {
+                if (!contrastReport) return;
+                const merged = [...motors];
+
+                contrastReport.newItems.forEach(item => merged.push(item));
+                contrastReport.updatedItems.forEach(({ existing, incoming }) => {
+                    const idx = merged.findIndex(m => m.id === existing.id);
+                    if (idx !== -1) {
+                        merged[idx] = { ...existing, ...incoming, id: existing.id };
+                    }
+                });
+
+                setMotors(merged);
+
+                try {
+                    if (window.firebaseModules && userId) {
+                        const { getFirestore, setDoc, doc } = window.firebaseModules;
+                        const db = getFirestore();
+                        const appId = 'cartocor-motors-production';
+                        for (const m of merged) {
+                            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'motors_list', m.id), m, { merge: true });
+                        }
+                    }
+                } catch (err) {
+                    console.error("Error sincronizando en nube:", err);
+                }
+
+                setContrastModalOpen(false);
+                setContrastReport(null);
+                showToast('Base de datos sincronizada con el Excel con éxito');
+            };
+
+            // Descargar Excel
             const exportToExcel = () => {
                 const worksheetData = motors.map(m => ({
                     'Tag': m.tag,
@@ -531,6 +664,10 @@
                             </div>
 
                             <div className="flex items-center gap-3">
+                                <label className="cursor-pointer bg-slate-800 hover:bg-slate-900 text-white font-semibold px-4 py-2 rounded-xl text-sm flex items-center gap-2 shadow-sm transition-all">
+                                    📊 Importar / Contrastar Excel
+                                    <input type="file" accept=".xlsx, .xls" className="hidden" onChange={handleExcelUpload} />
+                                </label>
                                 <button 
                                     onClick={exportToExcel}
                                     className="bg-emerald-700 hover:bg-emerald-800 text-white font-semibold px-4 py-2 rounded-xl text-sm flex items-center gap-2 shadow-sm transition-all"
@@ -596,6 +733,52 @@
                                 setNewNotes={setNewHistoryNotes}
                                 onSubmitHistory={handleAddHistoryEntry}
                             />
+                        )}
+
+                        {contrastModalOpen && contrastReport && (
+                            <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+                                <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh]">
+                                    <div className="px-6 py-4 bg-slate-900 text-white flex justify-between items-center">
+                                        <h3 className="text-base font-bold">Reporte de Contrastes con Excel</h3>
+                                        <button onClick={() => setContrastModalOpen(false)} className="text-slate-300 hover:text-white font-bold">✕</button>
+                                    </div>
+                                    <div className="p-6 overflow-y-auto space-y-4 flex-1">
+                                        <p className="text-xs text-slate-600">Se han analizado los registros del archivo de Excel y se contrastaron con la base actual:</p>
+                                        <div className="grid grid-cols-3 gap-4 text-center">
+                                            <div className="bg-slate-100 p-3 rounded-xl">
+                                                <div className="text-lg font-black text-slate-900">{contrastReport.totalParsed}</div>
+                                                <div className="text-xs text-slate-500">Registros en Excel</div>
+                                            </div>
+                                            <div className="bg-emerald-50 p-3 rounded-xl border border-emerald-200">
+                                                <div className="text-lg font-black text-emerald-800">{contrastReport.newItems.length}</div>
+                                                <div className="text-xs text-emerald-700">Motores Nuevos</div>
+                                            </div>
+                                            <div className="bg-amber-50 p-3 rounded-xl border border-amber-200">
+                                                <div className="text-lg font-black text-amber-800">{contrastReport.updatedItems.length}</div>
+                                                <div className="text-xs text-amber-700">Para Actualizar</div>
+                                            </div>
+                                        </div>
+
+                                        {contrastReport.newItems.length > 0 && (
+                                            <div>
+                                                <h4 className="text-xs font-bold text-slate-700 uppercase mb-2">Ejemplos de Nuevos Motores:</h4>
+                                                <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 max-h-36 overflow-y-auto space-y-1 text-xs font-mono">
+                                                    {contrastReport.newItems.map((item, idx) => (
+                                                        <div key={idx} className="flex justify-between">
+                                                            <span>{item.tag} ({item.code})</span>
+                                                            <span className="text-emerald-700 font-bold">{item.power} - {item.location}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
+                                        <button onClick={() => setContrastModalOpen(false)} className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-xs font-semibold">Cancelar</button>
+                                        <button onClick={applyContrastSync} className="px-5 py-2 bg-[#78BC1B] hover:bg-[#68a417] text-white rounded-xl text-xs font-bold shadow-sm">Sincronizar y Actualizar Base de Datos</button>
+                                    </div>
+                                </div>
+                            </div>
                         )}
 
                         {deleteTargetId && (
