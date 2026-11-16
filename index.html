@@ -8,6 +8,7 @@
     <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
         body { font-family: 'Inter', sans-serif; }
@@ -79,19 +80,78 @@
         })();
 
         const INITIAL_MOTORS = [
-            { id: '1', tag: 'MOT-001', power: '15 HP', rpm: '1450', flange: 'Con brida', location: 'Sala de Máquina', condition: 'En funcionamiento', description: 'Bomba principal de vacío - Máquina de Papel', x: 65, y: 35, palletNum: null, rack: '', floor: '', pallet: '' },
-            { id: '2', tag: 'MOT-002', power: '7.5 HP', rpm: '2900', flange: 'Sin brida', location: 'Depósito', condition: 'Esperando repuesto', description: 'Motor de repuesto sección húmeda', x: 25, y: 30, palletNum: 1, rack: 'Rack 1', floor: 'Piso 1', pallet: 'Tarima 1' },
-            { id: '3', tag: 'MOT-003', power: '30 HP', rpm: '980', flange: 'Con brida', location: 'Planta Sector A', condition: 'En reparación', description: 'Ventilador de tiro forzado sector hornos', x: 70, y: 75, palletNum: null, rack: '', floor: '', pallet: '' },
-            { id: '4', tag: 'MOT-004', power: '5 HP', rpm: '1450', flange: 'Sin brida', location: 'Depósito', condition: 'En funcionamiento', description: 'Stock disponible en estantería central A-3', x: 18, y: 65, palletNum: 2, rack: 'Rack 1', floor: 'Piso 1', pallet: 'Tarima 2' },
-            { id: '5', tag: 'MOT-005', power: '20 HP', rpm: '1450', flange: 'Con brida', location: 'Taller de Mantenimiento', condition: 'Retirado', description: 'Motor antiguo dado de baja por obsolescencia', x: 35, y: 80, palletNum: null, rack: '', floor: '', pallet: '' },
-            { id: '6', tag: 'MOT-006', power: '10 HP', rpm: '2900', flange: 'Con brida', location: 'Depósito', condition: 'En funcionamiento', description: 'Compresor de instrumentación auxiliar', x: 55, y: 55, palletNum: 7, rack: 'Rack 2', floor: 'Piso 1', pallet: 'Tarima 1' }
+            { 
+                id: '1', tag: 'MOT-001', code: 'ME-PU01', power: '30 HP', rpm: '1500', flange: 'Con brida', location: 'Sala de Máquina', condition: 'En funcionamiento', description: 'Bomba Centricleaner N° 2 - Humedo', x: 65, y: 35, palletNum: null, rack: '', floor: '', pallet: '',
+                history: [
+                    { date: '2025-01-10', action: 'Instalación inicial', user: 'Mantenimiento Arroyito', notes: 'Motor alineado y probado OK.' },
+                    { date: '2025-08-15', action: 'Control preventivo de vibraciones', user: 'Predictivo', notes: 'Vibración normal dentro de norma ISO.' }
+                ]
+            },
+            { 
+                id: '2', tag: 'MOT-002', code: 'ME-PU02', power: '7.5 HP', rpm: '2900', flange: 'Sin brida', location: 'Depósito', condition: 'Esperando repuesto', description: 'Motor de repuesto sección húmeda', x: 25, y: 30, palletNum: 1, rack: 'Rack 1', floor: 'Piso 1', pallet: 'Tarima 1',
+                history: [
+                    { date: '2026-02-10', action: 'Ingreso a Depósito', user: 'Pañol', notes: 'Guardado en Tarima #1. Falta rodamiento delantero.' }
+                ]
+            },
+            { 
+                id: '3', tag: 'MOT-003', code: 'ME-PU03', power: '20 HP', rpm: '1500', flange: 'Con brida', location: 'Planta Sector A', condition: 'En reparación', description: 'Extractor 3 portones mesa - Túnel', x: 70, y: 75, palletNum: null, rack: '', floor: '', pallet: '',
+                history: [
+                    { date: '2026-03-01', action: 'Retirado por falla eléctrica', user: 'Electricidad', notes: 'Cortocircuito en bobinado principal. Enviado a taller externo.' }
+                ]
+            },
+            { 
+                id: '4', tag: 'MOT-004', code: 'ME-PU04', power: '5 HP', rpm: '1450', flange: 'Sin brida', location: 'Depósito', condition: 'En funcionamiento', description: 'Stock disponible en estantería central A-3', x: 18, y: 65, palletNum: 2, rack: 'Rack 1', floor: 'Piso 1', pallet: 'Tarima 2',
+                history: [
+                    { date: '2025-11-20', action: 'Revisión y pruebas en vacío', user: 'Taller', notes: 'Megado OK. Listo para uso.' }
+                ]
+            },
+            { 
+                id: '5', tag: 'MOT-005', code: 'ME-PU05', power: '20 HP', rpm: '1450', flange: 'Con brida', location: 'Taller de Mantenimiento', condition: 'Retirado', description: 'Motor antiguo dado de baja por obsolescencia', x: 35, y: 80, palletNum: null, rack: '', floor: '', pallet: '',
+                history: [
+                    { date: '2024-05-10', action: 'Baja definitiva', user: 'Ingeniería', notes: 'Reemplazado por nuevo modelo de alta eficiencia.' }
+                ]
+            },
+            { 
+                id: '6', tag: 'MOT-006', code: 'ME-PU06', power: '10 HP', rpm: '2900', flange: 'Con brida', location: 'Depósito', condition: 'En funcionamiento', description: 'Compresor de instrumentación auxiliar', x: 55, y: 55, palletNum: 7, rack: 'Rack 2', floor: 'Piso 1', pallet: 'Tarima 1',
+                history: [
+                    { date: '2025-06-05', action: 'Ingreso al Pañol', user: 'Pañol', notes: 'Ubicado en Tarima #7 (Rack 2).' }
+                ]
+            }
         ];
 
         const CONDITION_COLORS = {
-            'En funcionamiento': { bg: 'bg-emerald-50', text: 'text-emerald-900', border: 'border-emerald-300', hex: '#78BC1B' },
-            'Esperando repuesto': { bg: 'bg-amber-50', text: 'text-amber-900', border: 'border-amber-300', hex: '#d97706' },
-            'En reparación': { bg: 'bg-orange-50', text: 'text-orange-900', border: 'border-orange-300', hex: '#ea580c' },
-            'Retirado': { bg: 'bg-slate-100', text: 'text-slate-800', border: 'border-slate-300', hex: '#64748b' }
+            'En funcionamiento': { 
+                bg: 'bg-emerald-50', 
+                rowBg: 'bg-emerald-50/40 hover:bg-emerald-50/70', 
+                text: 'text-emerald-900', 
+                border: 'border-emerald-300', 
+                badge: 'bg-emerald-600 text-white', 
+                hex: '#78BC1B' 
+            },
+            'Esperando repuesto': { 
+                bg: 'bg-amber-50', 
+                rowBg: 'bg-amber-50/40 hover:bg-amber-50/70', 
+                text: 'text-amber-900', 
+                border: 'border-amber-300', 
+                badge: 'bg-amber-500 text-white', 
+                hex: '#d97706' 
+            },
+            'En reparación': { 
+                bg: 'bg-orange-50', 
+                rowBg: 'bg-orange-50/40 hover:bg-orange-50/70', 
+                text: 'text-orange-900', 
+                border: 'border-orange-300', 
+                badge: 'bg-orange-600 text-white', 
+                hex: '#ea580c' 
+            },
+            'Retirado': { 
+                bg: 'bg-slate-100', 
+                rowBg: 'bg-slate-100/60 hover:bg-slate-100', 
+                text: 'text-slate-800', 
+                border: 'border-slate-300', 
+                badge: 'bg-slate-600 text-white', 
+                hex: '#64748b' 
+            }
         };
 
         function App() {
@@ -107,8 +167,13 @@
             const [isModalOpen, setIsModalOpen] = useState(false);
             const [editingMotor, setEditingMotor] = useState(null);
             const [formData, setFormData] = useState({
-                tag: '', power: '', rpm: '', flange: 'Con brida', location: 'Depósito', condition: 'En funcionamiento', description: '', x: 50, y: 50, palletNum: 1
+                tag: '', code: '', power: '', rpm: '', flange: 'Con brida', location: 'Depósito', condition: 'En funcionamiento', description: '', x: 50, y: 50, palletNum: 1
             });
+
+            // Modal para Historial de Motor
+            const [historyModalMotor, setHistoryModalMotor] = useState(null);
+            const [newHistoryAction, setNewHistoryAction] = useState('');
+            const [newHistoryNotes, setNewHistoryNotes] = useState('');
 
             const [toast, setToast] = useState(null);
             const [modalMessage, setModalMessage] = useState(null);
@@ -189,6 +254,7 @@
                 return motors.filter(m => {
                     const slotInfo = m.palletNum ? `tarima #${m.palletNum}` : '';
                     const matchesSearch = m.tag.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                          (m.code && m.code.toLowerCase().includes(searchTerm.toLowerCase())) ||
                                           m.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                                           m.power.toLowerCase().includes(searchTerm.toLowerCase()) ||
                                           slotInfo.includes(searchTerm.toLowerCase());
@@ -202,8 +268,9 @@
                 setEditingMotor(null);
                 setFormData({
                     tag: `MOT-${String(motors.length + 1).padStart(3, '0')}`,
+                    code: `ME-PU${String(motors.length + 1).padStart(2, '0')}`,
                     power: '10 HP',
-                    rpm: '1450',
+                    rpm: '1500',
                     flange: 'Con brida',
                     location: 'Depósito',
                     condition: 'En funcionamiento',
@@ -219,6 +286,7 @@
                 setEditingMotor(motor);
                 setFormData({ 
                     palletNum: motor.palletNum || 1,
+                    code: motor.code || '',
                     ...motor 
                 });
                 setIsModalOpen(true);
@@ -242,18 +310,23 @@
             const handleSaveMotor = async (e) => {
                 e.preventDefault();
                 if (!formData.tag.trim()) {
-                    setModalMessage('El código / Tag es obligatorio.');
+                    setModalMessage('El tag del motor es obligatorio.');
                     return;
                 }
 
                 const slot = WAREHOUSE_SLOTS.find(s => s.number === Number(formData.palletNum)) || WAREHOUSE_SLOTS[0];
+
+                const existingHistory = editingMotor ? (editingMotor.history || []) : [
+                    { date: new Date().toISOString().split('T')[0], action: 'Registro inicial en sistema', user: 'Operario Cartocor', notes: 'Alta de motor en inventario.' }
+                ];
 
                 const payload = {
                     ...formData,
                     palletNum: formData.location === 'Depósito' ? Number(formData.palletNum) : null,
                     rack: formData.location === 'Depósito' ? slot.rack : '',
                     floor: formData.location === 'Depósito' ? slot.floor : '',
-                    pallet: formData.location === 'Depósito' ? slot.pallet : ''
+                    pallet: formData.location === 'Depósito' ? slot.pallet : '',
+                    history: existingHistory
                 };
 
                 try {
@@ -270,9 +343,49 @@
                 setIsModalOpen(false);
             };
 
+            const handleAddHistoryEntry = async (e) => {
+                e.preventDefault();
+                if (!historyModalMotor || !newHistoryAction.trim()) return;
+
+                const newEntry = {
+                    date: new Date().toISOString().split('T')[0],
+                    action: newHistoryAction.trim(),
+                    user: 'Mantenimiento Arroyito',
+                    notes: newHistoryNotes.trim() || 'Sin observaciones adicionales.'
+                };
+
+                const updatedHistory = [newEntry, ...(historyModalMotor.history || [])];
+                const updatedMotor = { ...historyModalMotor, history: updatedHistory };
+
+                try {
+                    if (window.firebaseModules && userId) {
+                        const { getFirestore, setDoc, doc } = window.firebaseModules;
+                        const db = getFirestore();
+                        await setDoc(doc(db, 'artifacts', 'cartocor-motors-production', 'public', 'data', 'motors_list', historyModalMotor.id), updatedMotor, { merge: true });
+                    }
+                } catch (err) {
+                    console.error("Error guardando historial:", err);
+                }
+
+                setMotors(motors.map(m => m.id === historyModalMotor.id ? updatedMotor : m));
+                setHistoryModalMotor(updatedMotor);
+                setNewHistoryAction('');
+                setNewHistoryNotes('');
+                showToast('Evento agregado al historial del motor');
+            };
+
             const handleQuickUpdate = async (id, newCondition, newLocation) => {
                 const target = motors.find(m => m.id === id);
                 if (!target) return;
+                
+                const actionDesc = newCondition ? `Cambio de condición a: ${newCondition}` : `Cambio de ubicación a: ${newLocation}`;
+                const newHistoryEntry = {
+                    date: new Date().toISOString().split('T')[0],
+                    action: actionDesc,
+                    user: 'Operador',
+                    notes: 'Actualización rápida desde tabla.'
+                };
+
                 const updated = {
                     ...target,
                     condition: newCondition !== undefined ? newCondition : target.condition,
@@ -280,7 +393,8 @@
                     palletNum: newLocation && newLocation !== 'Depósito' ? null : target.palletNum,
                     rack: newLocation && newLocation !== 'Depósito' ? '' : target.rack,
                     floor: newLocation && newLocation !== 'Depósito' ? '' : target.floor,
-                    pallet: newLocation && newLocation !== 'Depósito' ? '' : target.pallet
+                    pallet: newLocation && newLocation !== 'Depósito' ? '' : target.pallet,
+                    history: [newHistoryEntry, ...(target.history || [])]
                 };
 
                 try {
@@ -313,6 +427,27 @@
                 showToast('Ubicación en plano actualizada');
             };
 
+            // Función para descargar Excel
+            const exportToExcel = () => {
+                const worksheetData = motors.map(m => ({
+                    'Tag': m.tag,
+                    'Código Interno': m.code || '',
+                    'Potencia': m.power,
+                    'RPM': m.rpm,
+                    'Carcasa / Brida': m.flange,
+                    'Ubicación': m.location,
+                    'Posición Depósito': m.palletNum ? `Tarima #${m.palletNum} (${m.rack} - ${m.floor})` : 'En Planta',
+                    'Condición': m.condition,
+                    'Descripción': m.description,
+                    'Cant. Eventos Historial': (m.history || []).length
+                }));
+                const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, "Inventario Motores");
+                XLSX.writeFile(workbook, "Inventario_Motores_Cartocor_Arroyito.xlsx");
+                showToast('Archivo Excel descargado con éxito');
+            };
+
             return (
                 <ErrorBoundary>
                     <div className="flex flex-col h-full bg-slate-50 text-slate-900 min-h-screen">
@@ -334,7 +469,7 @@
                                             {isFirebaseConnected ? 'Nube Sincronizada' : 'Modo Local'}
                                         </span>
                                     </div>
-                                    <h1 className="text-sm font-black text-slate-900">Gestión de Motores y Depósito (Tarimas 1-24)</h1>
+                                    <h1 className="text-sm font-black text-slate-900">Gestión Industrial de Motores y Depósito (Tarimas 1-24)</h1>
                                 </div>
                             </div>
 
@@ -360,7 +495,6 @@
                         {(stats.depotStock <= 1 || stats.repairingOrWaiting > 0) && (
                             <div className="bg-amber-50 border-b border-amber-200 px-6 py-2.5 flex items-center justify-between gap-4 text-xs text-amber-900 shrink-0">
                                 <div className="flex items-center gap-2 font-medium">
-                                    <svg className="w-4 h-4 text-amber-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                                     <span>
                                         <strong>Alerta Operativa Cartocor:</strong> {stats.depotStock <= 1 ? 'Stock operativo en depósito bajo (≤ 1 unidad disponible).' : ''} {stats.repairingOrWaiting > 0 ? `${stats.repairingOrWaiting} motor(es) pendientes por reparación o repuesto.` : ''}
                                     </span>
@@ -396,12 +530,20 @@
                                 </button>
                             </div>
 
-                            <button 
-                                onClick={handleOpenAddModal}
-                                className="bg-[#78BC1B] hover:bg-[#68a417] text-white font-bold px-5 py-2 rounded-xl text-sm flex items-center gap-2 shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98]"
-                            >
-                                + Agregar Motor
-                            </button>
+                            <div className="flex items-center gap-3">
+                                <button 
+                                    onClick={exportToExcel}
+                                    className="bg-emerald-700 hover:bg-emerald-800 text-white font-semibold px-4 py-2 rounded-xl text-sm flex items-center gap-2 shadow-sm transition-all"
+                                >
+                                    📥 Descargar Excel (.xlsx)
+                                </button>
+                                <button 
+                                    onClick={handleOpenAddModal}
+                                    className="bg-[#78BC1B] hover:bg-[#68a417] text-white font-bold px-5 py-2 rounded-xl text-sm flex items-center gap-2 shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98]"
+                                >
+                                    + Agregar Motor
+                                </button>
+                            </div>
                         </div>
 
                         <main className="flex-1 relative flex flex-col p-6 overflow-y-auto">
@@ -418,15 +560,17 @@
                                     onEdit={handleOpenEditModal}
                                     onDelete={(id) => setDeleteTargetId(id)}
                                     onQuickUpdate={handleQuickUpdate}
+                                    onOpenHistory={(motor) => setHistoryModalMotor(motor)}
                                 />
                             ) : activeTab === 'warehouse' ? (
-                                <WarehouseRacksView motors={motors} onEdit={handleOpenEditModal} />
+                                <WarehouseRacksView motors={motors} onEdit={handleOpenEditModal} onOpenHistory={(motor) => setHistoryModalMotor(motor)} />
                             ) : (
                                 <PlanView 
                                     motors={motors}
                                     onUpdatePosition={handleUpdatePosition}
                                     onQuickUpdate={handleQuickUpdate}
                                     onEdit={handleOpenEditModal}
+                                    onOpenHistory={(motor) => setHistoryModalMotor(motor)}
                                 />
                             )}
                         </main>
@@ -439,6 +583,18 @@
                                 onClose={() => setIsModalOpen(false)}
                                 onSave={handleSaveMotor}
                                 warehouseSlots={WAREHOUSE_SLOTS}
+                            />
+                        )}
+
+                        {historyModalMotor && (
+                            <HistoryModal 
+                                motor={historyModalMotor}
+                                onClose={() => setHistoryModalMotor(null)}
+                                newAction={newHistoryAction}
+                                setNewAction={setNewHistoryAction}
+                                newNotes={newHistoryNotes}
+                                setNewNotes={setNewHistoryNotes}
+                                onSubmitHistory={handleAddHistoryEntry}
                             />
                         )}
 
@@ -491,7 +647,7 @@
             );
         }
 
-        function TableView({ motors, allMotorsCount, searchTerm, setSearchTerm, filterLocation, setFilterLocation, filterCondition, setFilterCondition, onEdit, onDelete, onQuickUpdate }) {
+        function TableView({ motors, allMotorsCount, searchTerm, setSearchTerm, filterLocation, setFilterLocation, filterCondition, setFilterCondition, onEdit, onDelete, onQuickUpdate, onOpenHistory }) {
             return (
                 <div className="flex flex-col h-full overflow-hidden bg-white border border-slate-200 rounded-2xl shadow-sm">
                     <div className="bg-slate-50 border-b border-slate-200 p-4 flex flex-wrap gap-4 items-center justify-between">
@@ -499,7 +655,7 @@
                             <div className="relative min-w-[240px] flex-1">
                                 <input 
                                     type="text" 
-                                    placeholder="Buscar por tag, tarima, descripción..." 
+                                    placeholder="Buscar por tag, código, tarima, descripción..." 
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2 text-sm text-slate-900 focus:outline-none focus:border-slate-900 shadow-sm"
@@ -546,12 +702,12 @@
                         <table className="w-full text-left border-collapse text-sm">
                             <thead>
                                 <tr className="bg-slate-900 text-white uppercase text-xs tracking-wider sticky top-0 z-10">
-                                    <th className="py-3.5 px-4 font-semibold">Tag</th>
+                                    <th className="py-3.5 px-4 font-semibold">Tag / Código</th>
                                     <th className="py-3.5 px-4 font-semibold">Potencia</th>
                                     <th className="py-3.5 px-4 font-semibold">RPM</th>
                                     <th className="py-3.5 px-4 font-semibold">Ubicación</th>
                                     <th className="py-3.5 px-4 font-semibold">Tarima Depósito</th>
-                                    <th className="py-3.5 px-4 font-semibold">Condición</th>
+                                    <th className="py-3.5 px-4 font-semibold">Condición (Fondo resaltado)</th>
                                     <th className="py-3.5 px-4 font-semibold">Descripción</th>
                                     <th className="py-3.5 px-4 font-semibold text-right">Acciones</th>
                                 </tr>
@@ -567,10 +723,13 @@
                                     motors.map((motor) => {
                                         const condStyle = CONDITION_COLORS[motor.condition] || CONDITION_COLORS['Retirado'];
                                         return (
-                                            <tr key={motor.id} className="hover:bg-slate-50/80 transition-colors group">
-                                                <td className="py-3 px-4 font-mono font-bold text-slate-900 flex items-center gap-2">
-                                                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: condStyle.hex }}></span>
-                                                    {motor.tag}
+                                            <tr key={motor.id} className={`${condStyle.rowBg} transition-colors group`}>
+                                                <td className="py-3 px-4 font-mono font-bold text-slate-900">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: condStyle.hex }}></span>
+                                                        <span>{motor.tag}</span>
+                                                    </div>
+                                                    {motor.code && <div className="text-[11px] text-slate-500 font-normal pl-5">Cod: {motor.code}</div>}
                                                 </td>
                                                 <td className="py-3 px-4 text-slate-800">{motor.power}</td>
                                                 <td className="py-3 px-4 text-slate-800">{motor.rpm} RPM</td>
@@ -578,7 +737,7 @@
                                                     <select 
                                                         value={motor.location}
                                                         onChange={(e) => onQuickUpdate(motor.id, undefined, e.target.value)}
-                                                        className="text-xs font-semibold px-2.5 py-1 rounded-lg border cursor-pointer focus:outline-none bg-slate-100 text-slate-800 border-slate-300"
+                                                        className="text-xs font-semibold px-2.5 py-1 rounded-lg border cursor-pointer focus:outline-none bg-white text-slate-800 border-slate-300 shadow-2xs"
                                                     >
                                                         <option value="Depósito">Depósito</option>
                                                         <option value="Sala de Máquina">Sala de Máquina</option>
@@ -588,7 +747,7 @@
                                                 </td>
                                                 <td className="py-3 px-4">
                                                     {motor.location === 'Depósito' ? (
-                                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-emerald-50 text-emerald-900 border border-emerald-200">
+                                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-white text-emerald-900 border border-emerald-300 shadow-2xs">
                                                             Tarima #{motor.palletNum || 1} ({motor.rack || 'Rack 1'} - {motor.floor || 'Piso 1'})
                                                         </span>
                                                     ) : (
@@ -599,29 +758,36 @@
                                                     <select 
                                                         value={motor.condition}
                                                         onChange={(e) => onQuickUpdate(motor.id, e.target.value, undefined)}
-                                                        className={`text-xs font-semibold px-2.5 py-1 rounded-lg border cursor-pointer focus:outline-none ${condStyle.bg} ${condStyle.text} ${condStyle.border}`}
+                                                        className={`text-xs font-bold px-3 py-1.5 rounded-xl border cursor-pointer focus:outline-none ${condStyle.badge} shadow-xs`}
                                                     >
-                                                        <option value="En funcionamiento">En funcionamiento</option>
-                                                        <option value="Esperando repuesto">Esperando repuesto</option>
-                                                        <option value="En reparación">En reparación</option>
-                                                        <option value="Retirado">Retirado</option>
+                                                        <option value="En funcionamiento" className="bg-white text-slate-900">En funcionamiento</option>
+                                                        <option value="Esperando repuesto" className="bg-white text-slate-900">Esperando repuesto</option>
+                                                        <option value="En reparación" className="bg-white text-slate-900">En reparación</option>
+                                                        <option value="Retirado" className="bg-white text-slate-900">Retirado</option>
                                                     </select>
                                                 </td>
                                                 <td className="py-3 px-4 text-slate-600 text-xs max-w-xs truncate" title={motor.description}>
                                                     {motor.description || 'Sin descripción'}
                                                 </td>
                                                 <td className="py-3 px-4 text-right">
-                                                    <div className="flex items-center justify-end gap-1 opacity-80 group-hover:opacity-100">
+                                                    <div className="flex items-center justify-end gap-1.5">
+                                                        <button 
+                                                            onClick={() => onOpenHistory(motor)}
+                                                            className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-semibold transition-colors border border-indigo-200"
+                                                            title="Ver historial de eventos y mantenimiento"
+                                                        >
+                                                            📜 Historial ({(motor.history || []).length})
+                                                        </button>
                                                         <button 
                                                             onClick={() => onEdit(motor)}
-                                                            className="p-1.5 hover:bg-slate-200 rounded-lg text-slate-600 hover:text-slate-900 transition-colors"
+                                                            className="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-xs font-semibold transition-colors"
                                                             title="Editar motor"
                                                         >
                                                             Editar
                                                         </button>
                                                         <button 
                                                             onClick={() => onDelete(motor.id)}
-                                                            className="p-1.5 hover:bg-red-100 rounded-lg text-slate-400 hover:text-red-600 transition-colors"
+                                                            className="px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-semibold transition-colors border border-red-200"
                                                             title="Eliminar motor"
                                                         >
                                                             Eliminar
@@ -639,7 +805,7 @@
             );
         }
 
-        function WarehouseRacksView({ motors, onEdit }) {
+        function WarehouseRacksView({ motors, onEdit, onOpenHistory }) {
             const racks = ['Rack 1', 'Rack 2', 'Rack 3', 'Rack 4'];
             const floors = ['Piso 3', 'Piso 2', 'Piso 1'];
             const pallets = ['Tarima 1', 'Tarima 2'];
@@ -660,7 +826,7 @@
                             <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
                                 Depósito de Motores - Tarimas Numeradas del 1 al 24
                             </h2>
-                            <p className="text-xs text-slate-500 mt-1">Esquema físico de los 4 Racks. Cada tarima muestra los motores almacenados. Haz clic en un motor para editarlo.</p>
+                            <p className="text-xs text-slate-500 mt-1">Esquema físico de los 4 Racks. Cada tarima muestra los motores almacenados. Haz clic en un motor para editarlo o ver su historial.</p>
                         </div>
                         <div className="flex items-center gap-3 text-xs bg-slate-100 px-3 py-2 rounded-xl border border-slate-200">
                             <span className="font-semibold text-slate-700">Motores en Depósito:</span>
@@ -747,7 +913,7 @@
             );
         }
 
-        function PlanView({ motors, onUpdatePosition, onQuickUpdate, onEdit }) {
+        function PlanView({ motors, onUpdatePosition, onQuickUpdate, onEdit, onOpenHistory }) {
             const [selectedMotor, setSelectedMotor] = useState(null);
             const [planFilter, setPlanFilter] = useState('Todos');
             const [draggingId, setDraggingId] = useState(null);
@@ -912,17 +1078,95 @@
             );
         }
 
+        function HistoryModal({ motor, onClose, newAction, setNewAction, newNotes, setNewNotes, onSubmitHistory }) {
+            return (
+                <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh]">
+                        <div className="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-900 text-white">
+                            <div>
+                                <span className="text-xs font-mono bg-emerald-600 text-white px-2 py-0.5 rounded font-bold">{motor.tag}</span>
+                                <h3 className="text-base font-bold mt-1">Historial de Mantenimiento y Eventos</h3>
+                            </div>
+                            <button onClick={onClose} className="text-slate-300 hover:text-white p-1 rounded-lg font-bold">✕</button>
+                        </div>
+
+                        <div className="p-6 overflow-y-auto space-y-6 flex-1">
+                            <form onSubmit={onSubmitHistory} className="bg-slate-50 border border-slate-200 p-4 rounded-xl space-y-3">
+                                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">Agregar Nuevo Evento al Historial</h4>
+                                <div>
+                                    <input 
+                                        type="text" 
+                                        required
+                                        value={newAction}
+                                        onChange={(e) => setNewAction(e.target.value)}
+                                        placeholder="Acción / Evento (Ej. Cambio de rodamientos, Rebobinado)..."
+                                        className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-slate-900"
+                                    />
+                                </div>
+                                <div>
+                                    <textarea 
+                                        rows="2"
+                                        value={newNotes}
+                                        onChange={(e) => setNewNotes(e.target.value)}
+                                        placeholder="Observaciones, repuestos utilizados o notas técnicas..."
+                                        className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-slate-900"
+                                    ></textarea>
+                                </div>
+                                <div className="flex justify-end">
+                                    <button 
+                                        type="submit" 
+                                        className="bg-[#78BC1B] hover:bg-[#68a417] text-white font-bold px-4 py-2 rounded-xl text-xs shadow-sm transition-all"
+                                    >
+                                        + Registrar en Historial
+                                    </button>
+                                </div>
+                            </form>
+
+                            <div className="space-y-3">
+                                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">Registro Histórico del Motor</h4>
+                                {(!motor.history || motor.history.length === 0) ? (
+                                    <p className="text-xs text-slate-400 italic py-4 text-center">No hay eventos registrados en el historial de este motor.</p>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {motor.history.map((item, idx) => (
+                                            <div key={idx} className="border border-slate-200 rounded-xl p-3.5 bg-white shadow-2xs space-y-1">
+                                                <div className="flex justify-between items-center text-xs">
+                                                    <span className="font-bold text-slate-900">{item.action}</span>
+                                                    <span className="font-mono text-[11px] text-slate-400">{item.date}</span>
+                                                </div>
+                                                <p className="text-xs text-slate-600">{item.notes}</p>
+                                                <div className="text-[10px] text-slate-400 pt-1 border-t border-slate-100 flex justify-between">
+                                                    <span>Registrado por: <strong>{item.user}</strong></span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="px-6 py-3 border-t border-slate-200 bg-slate-50 flex justify-end">
+                            <button 
+                                onClick={onClose}
+                                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold"
+                            >
+                                Cerrar Ventana
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
         function MotorModal({ formData, setFormData, isEditing, onClose, onSave, warehouseSlots }) {
             return (
                 <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
                     <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-in fade-in zoom-in-95">
                         <div className="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
-                            <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                            <h3 className="text-base font-bold text-slate-900">
                                 {isEditing ? 'Editar Ficha de Motor' : 'Registrar Nuevo Motor'}
                             </h3>
-                            <button onClick={onClose} className="text-slate-400 hover:text-slate-900 p-1 rounded-lg hover:bg-slate-100 font-bold">
-                                ✕
-                            </button>
+                            <button onClick={onClose} className="text-slate-400 hover:text-slate-900 p-1 rounded-lg font-bold">✕</button>
                         </div>
 
                         <form onSubmit={onSave} className="p-6 space-y-4">
@@ -939,6 +1183,19 @@
                                     />
                                 </div>
                                 <div>
+                                    <label className="block text-xs font-semibold text-slate-700 mb-1">Código Interno</label>
+                                    <input 
+                                        type="text" 
+                                        value={formData.code || ''}
+                                        onChange={(e) => setFormData({...formData, code: e.target.value})}
+                                        placeholder="Ej. ME-PU07"
+                                        className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-slate-900 font-mono"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-3 gap-3">
+                                <div>
                                     <label className="block text-xs font-semibold text-slate-700 mb-1">Potencia</label>
                                     <input 
                                         type="text" 
@@ -948,25 +1205,22 @@
                                         className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-slate-900"
                                     />
                                 </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-xs font-semibold text-slate-700 mb-1">RPM</label>
                                     <input 
                                         type="text" 
                                         value={formData.rpm}
                                         onChange={(e) => setFormData({...formData, rpm: e.target.value})}
-                                        placeholder="Ej. 1450"
+                                        placeholder="Ej. 1500"
                                         className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-slate-900"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-semibold text-slate-700 mb-1">Carcasa / Brida</label>
+                                    <label className="block text-xs font-semibold text-slate-700 mb-1">Carcasa</label>
                                     <select 
                                         value={formData.flange}
                                         onChange={(e) => setFormData({...formData, flange: e.target.value})}
-                                        className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-slate-900"
+                                        className="w-full bg-slate-50 border border-slate-300 rounded-xl px-2 py-2 text-sm text-slate-900 focus:outline-none focus:border-slate-900"
                                     >
                                         <option value="Con brida">Con brida</option>
                                         <option value="Sin brida">Sin brida</option>
@@ -1005,7 +1259,7 @@
 
                             {formData.location === 'Depósito' && (
                                 <div className="bg-emerald-50/60 border border-emerald-200 p-4 rounded-2xl space-y-2">
-                                    <label className="block text-xs font-bold uppercase tracking-wider text-emerald-900 flex items-center gap-1.5">
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-emerald-900">
                                         Seleccionar Tarima en el Depósito (1 al 24)
                                     </label>
                                     <select 
