@@ -38,13 +38,28 @@
     <script type="text/babel">
         const { useState, useEffect, useMemo } = React;
 
+        // Generador de las 24 tarimas oficiales del depósito
+        const WAREHOUSE_SLOTS = useMemo(() => {
+            const slots = [];
+            let num = 1;
+            ['Rack 1', 'Rack 2', 'Rack 3', 'Rack 4'].forEach(rack => {
+                ['Piso 1', 'Piso 2', 'Piso 3'].forEach(floor => {
+                    ['Tarima 1', 'Tarima 2'].forEach(pallet => {
+                        slots.push({ number: num, rack, floor, pallet, label: `Tarima #${num} (${rack} - ${floor} - ${pallet})` });
+                        num++;
+                    });
+                });
+            });
+            return slots;
+        }, []);
+
         const INITIAL_MOTORS = [
-            { id: '1', tag: 'MOT-001', power: '15 HP', rpm: '1450', flange: 'Con brida', location: 'Sala de Máquina', condition: 'En funcionamiento', description: 'Bomba principal de vacío - Máquina de Papel', x: 65, y: 35, rack: '', floor: '', pallet: '' },
-            { id: '2', tag: 'MOT-002', power: '7.5 HP', rpm: '2900', flange: 'Sin brida', location: 'Depósito', condition: 'Esperando repuesto', description: 'Motor de repuesto para sección húmeda (Falta rodamiento)', x: 25, y: 30, rack: 'Rack 1', floor: 'Piso 1', pallet: 'Tarima 1' },
-            { id: '3', tag: 'MOT-003', power: '30 HP', rpm: '980', flange: 'Con brida', location: 'Planta Sector A', condition: 'En reparación', description: 'Ventilador de tiro forzado sector hornos', x: 70, y: 75, rack: '', floor: '', pallet: '' },
-            { id: '4', tag: 'MOT-004', power: '5 HP', rpm: '1450', flange: 'Sin brida', location: 'Depósito', condition: 'En funcionamiento', description: 'Stock disponible en estantería central A-3', x: 18, y: 65, rack: 'Rack 1', floor: 'Piso 1', pallet: 'Tarima 2' },
-            { id: '5', tag: 'MOT-005', power: '20 HP', rpm: '1450', flange: 'Con brida', location: 'Taller de Mantenimiento', condition: 'Retirado', description: 'Motor antiguo dado de baja por obsolescencia', x: 35, y: 80, rack: '', floor: '', pallet: '' },
-            { id: '6', tag: 'MOT-006', power: '10 HP', rpm: '2900', flange: 'Con brida', location: 'Depósito', condition: 'En funcionamiento', description: 'Compresor de instrumentación auxiliar', x: 55, y: 55, rack: 'Rack 2', floor: 'Piso 3', pallet: 'Tarima 1' }
+            { id: '1', tag: 'MOT-001', power: '15 HP', rpm: '1450', flange: 'Con brida', location: 'Sala de Máquina', condition: 'En funcionamiento', description: 'Bomba principal de vacío - Máquina de Papel', x: 65, y: 35, palletNum: null },
+            { id: '2', tag: 'MOT-002', power: '7.5 HP', rpm: '2900', flange: 'Sin brida', location: 'Depósito', condition: 'Esperando repuesto', description: 'Motor de repuesto para sección húmeda', x: 25, y: 30, palletNum: 1 },
+            { id: '3', tag: 'MOT-003', power: '30 HP', rpm: '980', flange: 'Con brida', location: 'Planta Sector A', condition: 'En reparación', description: 'Ventilador de tiro forzado sector hornos', x: 70, y: 75, palletNum: null },
+            { id: '4', tag: 'MOT-004', power: '5 HP', rpm: '1450', flange: 'Sin brida', location: 'Depósito', condition: 'En funcionamiento', description: 'Stock disponible en estantería central A-3', x: 18, y: 65, palletNum: 2 },
+            { id: '5', tag: 'MOT-005', power: '20 HP', rpm: '1450', flange: 'Con brida', location: 'Taller de Mantenimiento', condition: 'Retirado', description: 'Motor antiguo dado de baja por obsolescencia', x: 35, y: 80, palletNum: null },
+            { id: '6', tag: 'MOT-006', power: '10 HP', rpm: '2900', flange: 'Con brida', location: 'Depósito', condition: 'En funcionamiento', description: 'Compresor de instrumentación auxiliar', x: 55, y: 55, palletNum: 7 }
         ];
 
         const CONDITION_COLORS = {
@@ -67,7 +82,7 @@
             const [isModalOpen, setIsModalOpen] = useState(false);
             const [editingMotor, setEditingMotor] = useState(null);
             const [formData, setFormData] = useState({
-                tag: '', power: '', rpm: '', flange: 'Con brida', location: 'Depósito', condition: 'En funcionamiento', description: '', x: 50, y: 50, rack: 'Rack 1', floor: 'Piso 1', pallet: 'Tarima 1'
+                tag: '', power: '', rpm: '', flange: 'Con brida', location: 'Depósito', condition: 'En funcionamiento', description: '', x: 50, y: 50, palletNum: 1
             });
 
             const [toast, setToast] = useState(null);
@@ -151,10 +166,11 @@
 
             const filteredMotors = useMemo(() => {
                 return motors.filter(m => {
+                    const slotInfo = m.palletNum ? `tarima #${m.palletNum}` : '';
                     const matchesSearch = m.tag.toLowerCase().includes(searchTerm.toLowerCase()) || 
                                           m.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                                           m.power.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                          (m.rack && m.rack.toLowerCase().includes(searchTerm.toLowerCase()));
+                                          slotInfo.includes(searchTerm.toLowerCase());
                     const matchesLoc = filterLocation === 'Todos' || m.location === filterLocation;
                     const matchesCond = filterCondition === 'Todas' || m.condition === filterCondition;
                     return matchesSearch && matchesLoc && matchesCond;
@@ -173,9 +189,7 @@
                     description: '',
                     x: Math.floor(Math.random() * 60) + 20,
                     y: Math.floor(Math.random() * 60) + 20,
-                    rack: 'Rack 1',
-                    floor: 'Piso 1',
-                    pallet: 'Tarima 1'
+                    palletNum: 1
                 });
                 setIsModalOpen(true);
             };
@@ -183,7 +197,7 @@
             const handleOpenEditModal = (motor) => {
                 setEditingMotor(motor);
                 setFormData({ 
-                    rack: 'Rack 1', floor: 'Piso 1', pallet: 'Tarima 1',
+                    palletNum: 1,
                     ...motor 
                 });
                 setIsModalOpen(true);
@@ -211,11 +225,14 @@
                     return;
                 }
 
+                const slot = WAREHOUSE_SLOTS.find(s => s.number === Number(formData.palletNum)) || WAREHOUSE_SLOTS[0];
+
                 const payload = {
                     ...formData,
-                    rack: formData.location === 'Depósito' ? formData.rack : '',
-                    floor: formData.location === 'Depósito' ? formData.floor : '',
-                    pallet: formData.location === 'Depósito' ? formData.pallet : ''
+                    palletNum: formData.location === 'Depósito' ? Number(formData.palletNum) : null,
+                    rack: formData.location === 'Depósito' ? slot.rack : '',
+                    floor: formData.location === 'Depósito' ? slot.floor : '',
+                    pallet: formData.location === 'Depósito' ? slot.pallet : ''
                 };
 
                 try {
@@ -239,6 +256,7 @@
                     ...target,
                     condition: newCondition !== undefined ? newCondition : target.condition,
                     location: newLocation !== undefined ? newLocation : target.location,
+                    palletNum: newLocation && newLocation !== 'Depósito' ? null : target.palletNum,
                     rack: newLocation && newLocation !== 'Depósito' ? '' : target.rack,
                     floor: newLocation && newLocation !== 'Depósito' ? '' : target.floor,
                     pallet: newLocation && newLocation !== 'Depósito' ? '' : target.pallet
@@ -294,7 +312,7 @@
                                         {isFirebaseConnected ? 'Nube Sincronizada' : 'Modo Local'}
                                     </span>
                                 </div>
-                                <h1 className="text-sm font-black text-slate-900">Gestión de Motores y Depósito de Racks</h1>
+                                <h1 className="text-sm font-black text-slate-900">Gestión de Motores y Depósito (Tarimas 1-24)</h1>
                             </div>
                         </div>
 
@@ -348,7 +366,7 @@
                                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'warehouse' ? 'bg-slate-900 text-white shadow' : 'text-slate-600 hover:text-slate-900'}`}
                             >
                                 <i data-lucide="box" className="w-4 h-4 text-[#78BC1B]"></i>
-                                Depósito (Racks 1-4)
+                                Depósito (Tarimas 1-24)
                             </button>
                             <button 
                                 onClick={() => setActiveTab('plan')}
@@ -402,6 +420,7 @@
                             isEditing={!!editingMotor}
                             onClose={() => setIsModalOpen(false)}
                             onSave={handleSaveMotor}
+                            warehouseSlots={WAREHOUSE_SLOTS}
                         />
                     )}
 
@@ -468,7 +487,7 @@
                                 <i data-lucide="search" className="w-4 h-4 text-slate-400 absolute left-3.5 top-3"></i>
                                 <input 
                                     type="text" 
-                                    placeholder="Buscar por tag, rack, descripción..." 
+                                    placeholder="Buscar por tag, tarima, descripción..." 
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     className="w-full bg-white border border-slate-300 rounded-xl pl-10 pr-4 py-2 text-sm text-slate-900 focus:outline-none focus:border-slate-900 shadow-sm"
@@ -519,7 +538,7 @@
                                     <th className="py-3.5 px-4 font-semibold">Potencia</th>
                                     <th className="py-3.5 px-4 font-semibold">RPM</th>
                                     <th className="py-3.5 px-4 font-semibold">Ubicación</th>
-                                    <th className="py-3.5 px-4 font-semibold">Posición Depósito (Rack)</th>
+                                    <th className="py-3.5 px-4 font-semibold">Tarima Depósito</th>
                                     <th className="py-3.5 px-4 font-semibold">Condición</th>
                                     <th className="py-3.5 px-4 font-semibold">Descripción</th>
                                     <th className="py-3.5 px-4 font-semibold text-right">Acciones</th>
@@ -560,10 +579,10 @@
                                                     {motor.location === 'Depósito' ? (
                                                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-emerald-50 text-emerald-900 border border-emerald-200">
                                                             <i data-lucide="box" className="w-3.5 h-3.5 text-[#78BC1B]"></i>
-                                                            {motor.rack || 'Rack 1'} / {motor.floor || 'Piso 1'} / {motor.pallet || 'Tarima 1'}
+                                                            Tarima #{motor.palletNum || 1} ({motor.rack || 'Rack 1'} - {motor.floor || 'Piso 1'})
                                                         </span>
                                                     ) : (
-                                                        <span className="text-xs text-slate-400 italic">En Planta (Fuera de depósito)</span>
+                                                        <span className="text-xs text-slate-400 italic">En Planta</span>
                                                     )}
                                                 </td>
                                                 <td className="py-3 px-4">
@@ -612,10 +631,18 @@
 
         function WarehouseRacksView({ motors, onEdit }) {
             const racks = ['Rack 1', 'Rack 2', 'Rack 3', 'Rack 4'];
-            const floors = ['Piso 3', 'Piso 2', 'Piso 1']; // De arriba hacia abajo
+            const floors = ['Piso 3', 'Piso 2', 'Piso 1'];
             const pallets = ['Tarima 1', 'Tarima 2'];
 
             const depositMotors = motors.filter(m => m.location === 'Depósito');
+
+            // Mapeo auxiliar para encontrar el número de tarima global
+            const getPalletNumber = (rack, floor, pallet) => {
+                const rNum = parseInt(rack.replace('Rack ', '')) || 1;
+                const fNum = parseInt(floor.replace('Piso ', '')) || 1;
+                const pNum = pallet === 'Tarima 1' ? 1 : 2;
+                return (rNum - 1) * 6 + (fNum - 1) * 2 + pNum;
+            };
 
             return (
                 <div className="flex flex-col h-full gap-6 overflow-y-auto">
@@ -623,13 +650,13 @@
                         <div>
                             <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
                                 <i data-lucide="box" className="w-5 h-5 text-[#78BC1B]"></i>
-                                Esquema del Depósito de Motores (4 Racks x 3 Pisos x 2 Tarimas)
+                                Depósito de Motores - Tarimas Numeradas del 1 al 24
                             </h2>
-                            <p className="text-xs text-slate-500 mt-1">Cada tarima puede almacenar múltiples motores. Haz clic en cualquier motor para ver o editar su ubicación exacta.</p>
+                            <p className="text-xs text-slate-500 mt-1">Esquema físico de los 4 Racks. Cada tarima muestra los motores almacenados. Haz clic en un motor para editarlo.</p>
                         </div>
                         <div className="flex items-center gap-3 text-xs bg-slate-100 px-3 py-2 rounded-xl border border-slate-200">
-                            <span className="font-semibold text-slate-700">Total en Depósito:</span>
-                            <span className="font-bold text-slate-900">{depositMotors.length} motores</span>
+                            <span className="font-semibold text-slate-700">Motores en Depósito:</span>
+                            <span className="font-bold text-slate-900">{depositMotors.length}</span>
                         </div>
                     </div>
 
@@ -651,23 +678,26 @@
                                         <div key={floorName} className="bg-white border border-slate-200 rounded-xl p-3 shadow-2xs">
                                             <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2 border-b border-slate-100 pb-1 flex justify-between">
                                                 <span>{floorName}</span>
-                                                <span className="text-[10px] text-slate-400 lowercase">2 tarimas</span>
                                             </div>
                                             
                                             <div className="grid grid-cols-2 gap-2">
                                                 {pallets.map(palletName => {
-                                                    const cellMotors = depositMotors.filter(m => 
-                                                        (m.rack || 'Rack 1') === rackName && 
-                                                        (m.floor || 'Piso 1') === floorName && 
-                                                        (m.pallet || 'Tarima 1') === palletName
-                                                    );
+                                                    const pGlobalNum = getPalletNumber(rackName, floorName, palletName);
+                                                    const cellMotors = depositMotors.filter(m => {
+                                                        if (m.palletNum) {
+                                                            return m.palletNum === pGlobalNum;
+                                                        }
+                                                        return (m.rack || 'Rack 1') === rackName && 
+                                                               (m.floor || 'Piso 1') === floorName && 
+                                                               (m.pallet || 'Tarima 1') === palletName;
+                                                    });
 
                                                     return (
-                                                        <div key={palletName} className="bg-slate-50 border border-slate-200 rounded-lg p-2 min-h-[90px] flex flex-col justify-between">
-                                                            <div className="text-[10px] font-bold text-slate-500 mb-1 flex items-center justify-between">
-                                                                <span>{palletName}</span>
+                                                        <div key={palletName} className="bg-slate-50 border border-slate-200 rounded-lg p-2 min-h-[95px] flex flex-col justify-between">
+                                                            <div className="text-[10px] font-bold text-slate-600 mb-1 flex items-center justify-between bg-slate-200/60 px-1.5 py-0.5 rounded">
+                                                                <span>Tarima #{pGlobalNum}</span>
                                                                 {cellMotors.length > 0 && (
-                                                                    <span className="bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded text-[9px] font-black">
+                                                                    <span className="bg-emerald-600 text-white px-1.5 py-0.2 rounded text-[9px] font-black">
                                                                         {cellMotors.length}
                                                                     </span>
                                                                 )}
@@ -735,9 +765,9 @@
                         <div>
                             <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
                                 <i data-lucide="map-pin" className="w-4 h-4" style={{ color: '#78BC1B' }}></i>
-                                Lay Out Operativo - Cartocor Arroyito (Plano Oficial)
+                                Lay Out Operativo - Cartocor Arroyito
                             </h2>
-                            <p className="text-xs text-slate-500">Arrastra los pines sobre el predio o haz clic para ver y editar su ficha</p>
+                            <p className="text-xs text-slate-500">Arrastra los pines libremente con el mouse sobre el plano o haz clic para ver y editar su ficha</p>
                         </div>
 
                         <div className="flex items-center gap-3">
@@ -772,7 +802,7 @@
                     >
                         <div className="absolute inset-0 p-6 flex flex-col justify-between pointer-events-none opacity-40">
                             <div className="flex justify-between items-center border-b-2 border-dashed border-slate-400 pb-4">
-                                <div className="border-2 border-slate-400 p-4 rounded-xl w-[45%] bg-slate-800/10 text-center font-black text-slate-700 text-sm tracking-wider">DEPÓSITO / RACKS</div>
+                                <div className="border-2 border-slate-400 p-4 rounded-xl w-[45%] bg-slate-800/10 text-center font-black text-slate-700 text-sm tracking-wider">DEPÓSITO / RACKS (1-24)</div>
                                 <div className="border-2 border-slate-400 p-4 rounded-xl w-[45%] bg-slate-800/10 text-center font-black text-slate-700 text-sm tracking-wider">SALA DE MÁQUINA PAPEL</div>
                             </div>
                             <div className="flex justify-between items-center pt-4">
@@ -859,11 +889,6 @@
                                             <option value="Retirado">Retirado</option>
                                         </select>
                                     </div>
-
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-slate-500">Carcasa:</span>
-                                        <span className="font-semibold text-slate-900">{selectedMotor.flange}</span>
-                                    </div>
                                 </div>
 
                                 <div className="flex gap-2">
@@ -884,7 +909,7 @@
             );
         }
 
-        function MotorModal({ formData, setFormData, isEditing, onClose, onSave }) {
+        function MotorModal({ formData, setFormData, isEditing, onClose, onSave, warehouseSlots }) {
             return (
                 <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
                     <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-in fade-in zoom-in-95">
@@ -977,49 +1002,23 @@
                             </div>
 
                             {formData.location === 'Depósito' && (
-                                <div className="bg-emerald-50/60 border border-emerald-200 p-4 rounded-2xl space-y-3">
-                                    <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-900 flex items-center gap-1.5">
+                                <div className="bg-emerald-50/60 border border-emerald-200 p-4 rounded-2xl space-y-2">
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-emerald-900 flex items-center gap-1.5">
                                         <i data-lucide="box" className="w-4 h-4 text-[#78BC1B]"></i>
-                                        Ubicación en Racks del Depósito
-                                    </h4>
-                                    <div className="grid grid-cols-3 gap-3">
-                                        <div>
-                                            <label className="block text-[11px] font-semibold text-slate-700 mb-1">Rack</label>
-                                            <select 
-                                                value={formData.rack}
-                                                onChange={(e) => setFormData({...formData, rack: e.target.value})}
-                                                className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-slate-900"
-                                            >
-                                                <option value="Rack 1">Rack 1</option>
-                                                <option value="Rack 2">Rack 2</option>
-                                                <option value="Rack 3">Rack 3</option>
-                                                <option value="Rack 4">Rack 4</option>
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label className="block text-[11px] font-semibold text-slate-700 mb-1">Piso / Nivel</label>
-                                            <select 
-                                                value={formData.floor}
-                                                onChange={(e) => setFormData({...formData, floor: e.target.value})}
-                                                className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-slate-900"
-                                            >
-                                                <option value="Piso 1">Piso 1 (Inferior)</option>
-                                                <option value="Piso 2">Piso 2 (Medio)</option>
-                                                <option value="Piso 3">Piso 3 (Superior)</option>
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label className="block text-[11px] font-semibold text-slate-700 mb-1">Tarima</label>
-                                            <select 
-                                                value={formData.pallet}
-                                                onChange={(e) => setFormData({...formData, pallet: e.target.value})}
-                                                className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-slate-900"
-                                            >
-                                                <option value="Tarima 1">Tarima 1</option>
-                                                <option value="Tarima 2">Tarima 2</option>
-                                            </select>
-                                        </div>
-                                    </div>
+                                        Seleccionar Tarima en el Depósito (1 al 24)
+                                    </label>
+                                    <select 
+                                        value={formData.palletNum || 1}
+                                        onChange={(e) => setFormData({...formData, palletNum: Number(e.target.value)})}
+                                        className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold text-slate-900 focus:outline-none focus:border-slate-900"
+                                    >
+                                        {warehouseSlots.map(slot => (
+                                            <option key={slot.number} value={slot.number}>
+                                                {slot.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <p className="text-[11px] text-slate-500">Cada tarima agrupa su rack, nivel (piso) y posición correspondiente.</p>
                                 </div>
                             )}
 
