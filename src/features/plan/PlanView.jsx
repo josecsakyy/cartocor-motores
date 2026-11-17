@@ -3,6 +3,7 @@ import { ConditionSelect, LocationSelect } from '../../components/ui/Selects';
 import { PLANT, conditionStyle } from '../../domain/constants';
 import { SECTORS, sectorLabel } from '../../domain/sectors';
 import { useMotors } from '../../store/MotorsProvider';
+import { powerLabel } from '../../domain/motor';
 import { MotorActions } from '../motors/MotorActions';
 import { usePanZoom } from './usePanZoom';
 
@@ -209,7 +210,7 @@ function MotorDetailPanel({ motor, onClose }) {
         <div>
           <span className="rounded border border-slate-200 bg-slate-100 px-2 py-0.5 font-mono text-xs font-bold">{motor.tag}</span>
           <h3 className="mt-1 text-sm font-bold">
-            {motor.power || '—'} · {motor.rpm ? `${motor.rpm} RPM` : '—'}
+            {powerLabel(motor) || '—'} · {motor.rpm ? `${motor.rpm} RPM` : '—'}
           </h3>
           <p className="text-[11px] font-semibold text-emerald-700">
             {sectorLabel(motor.sector)}
