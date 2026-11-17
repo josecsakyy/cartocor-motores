@@ -1,8 +1,9 @@
 import { useRef, useState } from 'react';
 import { AppHeader } from './components/layout/AppHeader';
 import { useToast } from './components/ui/Toast';
+import { ExportModal } from './features/excel/ExportModal';
 import { ImportReportModal } from './features/excel/ImportReportModal';
-import { buildImportReport, exportMotorsToExcel, readWorkbook } from './features/excel/excelService';
+import { buildImportReport, readWorkbook } from './features/excel/excelService';
 import { PlanView } from './features/plan/PlanView';
 import { ALL, PENDING, TableView } from './features/table/TableView';
 import { WarehouseView } from './features/warehouse/WarehouseView';
@@ -26,6 +27,7 @@ export default function App() {
   const [tab, setTab] = useState('table');
   const [filters, setFilters] = useState({ search: '', location: ALL, condition: ALL, sector: ALL });
   const [importReport, setImportReport] = useState(null);
+  const [exportOpen, setExportOpen] = useState(false);
 
   const handleImport = async (e) => {
     const file = e.target.files?.[0];
@@ -41,9 +43,9 @@ export default function App() {
     }
   };
 
-  const handleExport = () => {
-    exportMotorsToExcel(motors);
-    toast.success('Excel descargado');
+  const handleExported = (count) => {
+    setExportOpen(false);
+    toast.success(`Lista de control descargada (${count} motores)`);
   };
 
   const showPending = () => {
@@ -93,7 +95,7 @@ export default function App() {
             📊 Importar / contrastar Excel
           </button>
           <input ref={fileInput} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleImport} />
-          <button type="button" onClick={handleExport} disabled={motors.length === 0} className="btn-primary bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50">
+          <button type="button" onClick={() => setExportOpen(true)} disabled={motors.length === 0} className="btn-primary bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50">
             📥 Descargar Excel
           </button>
           <button type="button" onClick={openCreate} disabled={status === 'loading'} className="btn-brand disabled:opacity-50">
@@ -109,6 +111,7 @@ export default function App() {
       </main>
 
       {importReport && <ImportReportModal report={importReport} onClose={() => setImportReport(null)} />}
+      {exportOpen && <ExportModal motors={motors} onClose={() => setExportOpen(false)} onDone={handleExported} />}
     </div>
   );
 }
