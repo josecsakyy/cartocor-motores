@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ConditionSelect, LocationSelect } from '../../components/ui/Selects';
 import { PLANT, conditionStyle } from '../../domain/constants';
-import { PLAN_ASPECT, SECTORS, SPIRAL_SPACING, sectorLabel, sectorSpread } from '../../domain/sectors';
+import { SECTORS, sectorLabel } from '../../domain/sectors';
 import { useMotors } from '../../store/MotorsProvider';
 import { MotorActions } from '../motors/MotorActions';
 import { usePanZoom } from './usePanZoom';
@@ -43,6 +43,15 @@ export function PlanView() {
     const counts = new Map();
     plantMotors.forEach((m) => counts.set(m.sector, (counts.get(m.sector) ?? 0) + 1));
     return counts;
+  }, [plantMotors]);
+  // Altura del rótulo de cada sector: justo arriba del motor más alto cercano a su punto de referencia.
+  const labelTop = useMemo(() => {
+    const tops = new Map();
+    SECTORS.forEach((s) => {
+      const near = plantMotors.filter((m) => m.sector === s.id && Math.abs(m.x - s.anchor.x) < 8 && Math.abs(m.y - s.anchor.y) < 6);
+      tops.set(s.id, near.length ? Math.min(...near.map((m) => m.y)) - 0.6 : s.anchor.y - 0.6);
+    });
+    return tops;
   }, [plantMotors]);
   const showLabels = view.scale >= LABEL_MIN_SCALE;
   const selected = motors.find((m) => m.id === selectedId) ?? null; // si se borra, el panel se cierra solo
@@ -138,12 +147,10 @@ export function PlanView() {
           )}
 
           {SECTORS.filter((s) => sectorCounts.has(s.id) && (sector === ALL || sector === s.id)).map((s) => {
-            // El rótulo va justo arriba del grupo de motores del sector (radio de la espiral).
-            const radiusY = SPIRAL_SPACING * Math.sqrt(sectorCounts.get(s.id)) * PLAN_ASPECT * sectorSpread(s.id).y;
             return (
               <div
                 key={s.id}
-                style={{ left: `${s.anchor.x}%`, top: `${s.anchor.y - radiusY - 0.8}%`, transform: `translate(-50%, -100%) scale(${1 / view.scale})` }}
+                style={{ left: `${s.anchor.x}%`, top: `${labelTop.get(s.id)}%`, transform: `translate(-50%, -100%) scale(${1 / view.scale})` }}
                 className="pointer-events-none absolute z-30 origin-bottom rounded-md bg-slate-900/85 px-2 py-0.5 text-[11px] font-bold whitespace-nowrap text-white"
               >
                 {s.short} · {sectorCounts.get(s.id)}
