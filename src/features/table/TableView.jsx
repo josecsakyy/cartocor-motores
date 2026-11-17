@@ -113,6 +113,7 @@ export function TableView({ filters, onFiltersChange }) {
                     <td className="px-4 py-3">
                       <ConditionSelect
                         value={motor.condition}
+                        location={motor.location}
                         onChange={(c) => changeCondition(motor.id, c)}
                         className={`cursor-pointer rounded-xl border px-3 py-1.5 text-xs font-bold ${style.badge}`}
                       />
