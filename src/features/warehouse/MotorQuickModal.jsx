@@ -1,6 +1,7 @@
 import { Modal } from '../../components/ui/Modal';
 import { PalletSelect } from '../../components/ui/Selects';
 import { conditionStyle } from '../../domain/constants';
+import { powerKw } from '../../domain/motor';
 import { formatSlot } from '../../domain/warehouse';
 import { MotorActions } from '../motors/MotorActions';
 
@@ -10,10 +11,15 @@ export function MotorQuickModal({ motor, onMove, onClose }) {
   const rows = [
     ['Código', motor.code],
     ['Potencia', motor.power],
+    ['kW', powerKw(motor)],
     ['RPM', motor.rpm],
     ['Marca', motor.brand],
     ['Carcasa', motor.frame],
     ['Brida', motor.flange],
+    ['Rodamiento del.', motor.details?.['Rodamiento delantero']],
+    ['Rodamiento tras.', motor.details?.['Rodamiento trasero']],
+    ['Conexión', motor.details?.['Conexión']],
+    ['I máx.', motor.details?.['I máx.'] && `${motor.details['I máx.']} A`],
     ['Descripción', motor.description],
     ['Observaciones', motor.notes],
   ].filter(([, v]) => v);

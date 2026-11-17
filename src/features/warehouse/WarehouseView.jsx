@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { DEPOT, conditionStyle } from '../../domain/constants';
 import { FLOORS, PALLETS, RACKS, palletNumberOf } from '../../domain/warehouse';
+import { powerKw } from '../../domain/motor';
 import { useMotors } from '../../store/MotorsProvider';
 import { MotorQuickModal } from './MotorQuickModal';
 import { Modal } from '../../components/ui/Modal';
@@ -195,7 +196,7 @@ function MotorChip({ motor, color, detailed }) {
       <span className="mt-1 h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: color }} />
       <span className="min-w-0 flex-1 leading-tight">
         <span className="block truncate font-mono text-[11px] font-bold text-slate-900">{motor.tag}</span>
-        <span className="block truncate text-[10px] font-semibold text-slate-700">{join(motor.power, rpm) || '—'}</span>
+        <span className="block truncate text-[10px] font-semibold text-slate-700">{join(motor.power, powerKw(motor), rpm) || '—'}</span>
         <span className="block truncate text-[10px] text-slate-500">{join(motor.brand, motor.frame && `Carc. ${motor.frame}`)}</span>
         {detailed && (
           <>
