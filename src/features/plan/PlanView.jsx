@@ -12,8 +12,9 @@ const ALL = 'Todos';
 const DRAG_THRESHOLD_PX = 4;
 // Por debajo de este zoom los motores se muestran como puntos para que no se encimen.
 const LABEL_MIN_SCALE = 3;
-// Encuadre inicial: la planta baja (donde están todos los sectores con motores).
-const FOCUS = { x0: 3, y0: 3, x1: 41, y1: 50 };
+// Encuadre inicial: planta baja (izquierda) y planta alta (derecha). El corte A-A y los
+// subsuelos están más abajo: se llega arrastrando el plano.
+const FOCUS = { x0: 3, y0: 3, x1: 97, y1: 52 };
 
 /** Carga public/plano.png y devuelve su proporción; null mientras carga, false si no existe. */
 function usePlanImage() {
