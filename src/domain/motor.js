@@ -1,4 +1,4 @@
-import { CONDITIONS, DEFAULT_USER, DEPOT, FLANGES, LOCATIONS, PLANT } from './constants';
+import { CONDITIONS, DEFAULT_USER, DEPOT, FLANGES, LOCATIONS, OPERATIVE, PLANT, RUNNING } from './constants';
 import { normalizeSector, sectorLabel } from './sectors';
 import { getSlot, isValidPallet, palletFromLegacyFields } from './warehouse';
 
@@ -26,6 +26,13 @@ export const createHistoryEntry = (action, notes = '', user = DEFAULT_USER) => (
   notes: str(notes) || 'Sin observaciones adicionales.',
 });
 
+/** "En funcionamiento" solo existe en planta; fuera de planta un motor útil está "Operativo". */
+export const conditionFor = (location, condition) => {
+  if (location !== PLANT && condition === RUNNING) return OPERATIVE;
+  if (location === PLANT && condition === OPERATIVE) return RUNNING;
+  return condition;
+};
+
 /**
  * Convierte cualquier registro (Firestore, localStorage, Excel, formulario)
  * en un motor con forma garantizada. Es el único lugar donde se decide
@@ -38,6 +45,8 @@ export const normalizeMotor = (raw, id = raw?.id) => {
     // En el depósito puede haber motores sin tarima asignada (palletNum = null).
     palletNum = isValidPallet(raw?.palletNum) ? Number(raw.palletNum) : palletFromLegacyFields(raw ?? {});
   }
+
+  const condition = conditionFor(location, CONDITIONS.includes(raw?.condition) ? raw.condition : CONDITIONS[0]);
 
   return {
     id: str(id),
@@ -52,7 +61,7 @@ export const normalizeMotor = (raw, id = raw?.id) => {
     sector: normalizeSector(raw?.sector),
     panel: str(raw?.panel),
     palletNum,
-    condition: CONDITIONS.includes(raw?.condition) ? raw.condition : CONDITIONS[0],
+    condition,
     description: str(raw?.description),
     notes: str(raw?.notes),
     details:
