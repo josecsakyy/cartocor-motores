@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { ConditionSelect, LocationSelect } from '../../components/ui/Selects';
 import { CONDITIONS, DEPOT, LOCATIONS, PENDING_CONDITIONS, PLANT, conditionStyle } from '../../domain/constants';
-import { searchableText } from '../../domain/motor';
+import { powerLabel, searchableText } from '../../domain/motor';
 import { formatSlot } from '../../domain/warehouse';
 import { SECTORS, sectorLabel } from '../../domain/sectors';
 import { useMotors } from '../../store/MotorsProvider';
@@ -87,7 +87,7 @@ export function TableView({ filters, onFiltersChange }) {
                       </div>
                       {motor.code && <div className="pl-5 text-[11px] font-normal text-slate-500">Cod: {motor.code}</div>}
                     </td>
-                    <td className="px-4 py-3 text-slate-800">{motor.power || '—'}</td>
+                    <td className="px-4 py-3 text-slate-800">{powerLabel(motor) || '—'}</td>
                     <td className="px-4 py-3 text-slate-800">{motor.rpm ? `${motor.rpm} RPM` : '—'}</td>
                     <td className="px-4 py-3">
                       <LocationSelect
