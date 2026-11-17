@@ -4,15 +4,15 @@
 // 2024 (planta baja, referencias de la tabla del plano).
 export const SECTORS = [
   // Sectores con motores en el inventario maestro (nombre y n° según el plano).
-  { id: 'HUMEDO', short: 'Húmedo (1)', label: 'Máquina de papel N°2 · Sección húmeda (1)', anchor: { x: 17.0, y: 8.7 }, spread: { x: 2.3, y: 0.35 } },
-  { id: 'SECADO', short: 'Secado (1)', label: 'Máquina de papel N°2 · Secado (1)', anchor: { x: 27.0, y: 8.7 }, spread: { x: 2.3, y: 0.35 } },
-  { id: 'REBOBINADORA', short: 'Rebobinadora (1)', label: 'Máquina de papel N°2 · Rebobinadora (1)', anchor: { x: 36.6, y: 8.9 } },
-  { id: 'PULPADO', short: 'Pulpado (11)', label: 'Pulpado · Piletas de pasta (11)', anchor: { x: 11.0, y: 21.1 } },
-  { id: 'ZARANDAS', short: 'Zarandas (11)', label: 'Pulpado · Zarandas y espesador (11)', anchor: { x: 16.9, y: 27.6 } },
-  { id: 'ALMIDON', short: 'Almidón', label: 'Depósito de almidón cocido', anchor: { x: 18.9, y: 18.7 } },
-  { id: 'EFLUENTES', short: 'Efluentes', label: 'Planta de tratamiento de efluentes', anchor: { x: 12.8, y: 34.7 } },
+  { id: 'HUMEDO', short: 'Húmedo (1)', label: 'Máquina de papel N°2 · Sección húmeda (1)', anchor: { x: 15.5, y: 7.4 }, spread: { x: 2.3, y: 0.35 } },
+  { id: 'SECADO', short: 'Secado (1)', label: 'Máquina de papel N°2 · Secado (1)', anchor: { x: 26.0, y: 7.2 }, spread: { x: 2.3, y: 0.35 } },
+  { id: 'REBOBINADORA', short: 'Rebobinadora (1)', label: 'Máquina de papel N°2 · Rebobinadora (1)', anchor: { x: 36.5, y: 8.0 } },
+  { id: 'PULPADO', short: 'Pulpado (11)', label: 'Pulpado · Piletas de pasta (11)', anchor: { x: 10.8, y: 21.2 } },
+  { id: 'ZARANDAS', short: 'Zarandas y vacío', label: 'Zarandas y bombas de vacío', anchor: { x: 18.4, y: 17.6 } },
+  { id: 'ALMIDON', short: 'Almidón', label: 'Depósito de almidón cocido', anchor: { x: 21.8, y: 19.4 } },
+  { id: 'EFLUENTES', short: 'Efluentes', label: 'Planta de tratamiento de efluentes', anchor: { x: 11.0, y: 32.0 } },
   { id: 'DEPOSITO BOBINAS', short: 'Dep. bobinas (12)', label: 'Depósito de bobinas (12)', anchor: { x: 27.5, y: 20.4 } },
-  { id: 'SUBESTACION 1', short: 'Subestación (3)', label: 'Subestación transformadora (3)', anchor: { x: 9.4, y: 9.8 } },
+  { id: 'SUBESTACION 1', short: 'Subestación (3)', label: 'Subestación transformadora (3)', anchor: { x: 8.6, y: 10.2 } },
   { id: 'TALLER CHAPA', short: 'Dep. chapas (13)', label: 'Depósito de chapas (13)', anchor: { x: 8.8, y: 42.8 } },
   { id: 'TALLER SOLDADURA', short: 'Soldadura (13)', label: 'Taller de soldadura (13)', anchor: { x: 9.5, y: 45.7 } },
   { id: 'TALLER MECANICO', short: 'Taller y pañol (14)', label: 'Taller central de mantenimiento y pañol (14)', anchor: { x: 7.2, y: 68.9 } },
