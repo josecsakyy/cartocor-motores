@@ -7,7 +7,7 @@ export const SECTORS = [
   { id: 'HUMEDO', short: 'Húmedo (1)', label: 'Máquina de papel N°2 · Sección húmeda (1)', anchor: { x: 15.5, y: 7.4 }, spread: { x: 2.3, y: 0.35 } },
   { id: 'SECADO', short: 'Secado (1)', label: 'Máquina de papel N°2 · Secado (1)', anchor: { x: 26.0, y: 7.2 }, spread: { x: 2.3, y: 0.35 } },
   { id: 'REBOBINADORA', short: 'Rebobinadora (1)', label: 'Máquina de papel N°2 · Rebobinadora (1)', anchor: { x: 36.5, y: 8.0 } },
-  { id: 'PULPADO', short: 'Pulpado (11)', label: 'Pulpado · Piletas de pasta (11)', anchor: { x: 10.8, y: 21.2 } },
+  { id: 'PULPADO', short: 'Pulpado (11)', label: 'Pulpado (11) · planta alta y piletas', anchor: { x: 66.5, y: 22.0 } },
   { id: 'ZARANDAS', short: 'Zarandas y vacío', label: 'Zarandas y bombas de vacío', anchor: { x: 18.4, y: 17.6 } },
   { id: 'ALMIDON', short: 'Almidón', label: 'Depósito de almidón cocido', anchor: { x: 21.8, y: 19.4 } },
   { id: 'EFLUENTES', short: 'Efluentes', label: 'Planta de tratamiento de efluentes', anchor: { x: 11.0, y: 32.0 } },
