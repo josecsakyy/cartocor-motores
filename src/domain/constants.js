@@ -1,12 +1,16 @@
 export const DEPOT = 'Depósito';
 
-export const LOCATIONS = [DEPOT, 'Sala de Máquina', 'Planta Sector A', 'Taller de Mantenimiento'];
+export const PLANT = 'Planta';
 
-export const CONDITIONS = ['En funcionamiento', 'Esperando repuesto', 'En reparación', 'Retirado'];
+export const REPAIR_SHOP = 'Taller de Mantenimiento';
+
+export const LOCATIONS = [PLANT, DEPOT, REPAIR_SHOP];
+
+export const CONDITIONS = ['En funcionamiento', 'Esperando repuesto', 'En reparación', 'No operativo', 'Retirado'];
 
 export const PENDING_CONDITIONS = ['Esperando repuesto', 'En reparación'];
 
-export const FLANGES = ['Con brida', 'Sin brida'];
+export const FLANGES = ['Con brida', 'Sin brida', 'Sin dato'];
 
 export const DEFAULT_USER = 'Mantenimiento Arroyito';
 
@@ -30,6 +34,12 @@ export const CONDITION_STYLES = {
     border: 'border-orange-300',
     badge: 'bg-orange-600 text-white',
     hex: '#ea580c',
+  },
+  'No operativo': {
+    rowBg: 'bg-red-50/40 hover:bg-red-50/70',
+    border: 'border-red-300',
+    badge: 'bg-red-600 text-white',
+    hex: '#dc2626',
   },
   Retirado: {
     rowBg: 'bg-slate-100/60 hover:bg-slate-100',

@@ -36,5 +36,5 @@ export const palletFromLegacyFields = ({ rack, floor, pallet }) => {
 
 export const formatSlot = (palletNum) => {
   const slot = getSlot(palletNum);
-  return slot ? `Tarima #${slot.number} (${slot.rack} - ${slot.floor})` : '';
+  return slot ? `Tarima #${slot.number} (${slot.rack} - ${slot.floor})` : 'Sin tarima asignada';
 };

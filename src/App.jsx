@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { AppHeader } from './components/layout/AppHeader';
 import { useToast } from './components/ui/Toast';
 import { ImportReportModal } from './features/excel/ImportReportModal';
-import { buildImportReport, exportMotorsToExcel, parseMotorsWorkbook } from './features/excel/excelService';
+import { buildImportReport, exportMotorsToExcel, readWorkbook } from './features/excel/excelService';
 import { PlanView } from './features/plan/PlanView';
 import { ALL, PENDING, TableView } from './features/table/TableView';
 import { WarehouseView } from './features/warehouse/WarehouseView';
@@ -24,7 +24,7 @@ export default function App() {
   const fileInput = useRef(null);
 
   const [tab, setTab] = useState('table');
-  const [filters, setFilters] = useState({ search: '', location: ALL, condition: ALL });
+  const [filters, setFilters] = useState({ search: '', location: ALL, condition: ALL, sector: ALL });
   const [importReport, setImportReport] = useState(null);
 
   const handleImport = async (e) => {
@@ -32,9 +32,9 @@ export default function App() {
     e.target.value = ''; // permite volver a elegir el mismo archivo
     if (!file) return;
     try {
-      const rows = await parseMotorsWorkbook(file);
-      if (rows.length === 0) return toast.error('No se encontraron motores en el archivo.');
-      setImportReport(buildImportReport(rows, motors));
+      const report = buildImportReport(await readWorkbook(file), motors);
+      if (report.total === 0) return toast.error('No se encontraron motores en el archivo.');
+      setImportReport(report);
     } catch (err) {
       console.error(err);
       toast.error('No se pudo leer el Excel. Verificá que sea un archivo .xlsx válido.');
@@ -48,7 +48,7 @@ export default function App() {
 
   const showPending = () => {
     setTab('table');
-    setFilters({ search: '', location: ALL, condition: PENDING });
+    setFilters({ search: '', location: ALL, condition: PENDING, sector: ALL });
   };
 
   const showAlert = status !== 'loading' && motors.length > 0 && (stats.depotStock <= 1 || stats.pending > 0);

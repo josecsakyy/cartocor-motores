@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ConditionSelect, LocationSelect } from '../../components/ui/Selects';
-import { LOCATIONS, conditionStyle } from '../../domain/constants';
-import { formatSlot } from '../../domain/warehouse';
+import { PLANT, conditionStyle } from '../../domain/constants';
+import { PLAN_ASPECT, SECTORS, SPIRAL_SPACING, sectorLabel, sectorSpread } from '../../domain/sectors';
 import { useMotors } from '../../store/MotorsProvider';
 import { MotorActions } from '../motors/MotorActions';
 import { usePanZoom } from './usePanZoom';
@@ -10,6 +10,10 @@ const PLAN_URL = `${import.meta.env.BASE_URL}plano.png`;
 const FALLBACK_ASPECT = 16 / 10;
 const ALL = 'Todos';
 const DRAG_THRESHOLD_PX = 4;
+// Por debajo de este zoom los motores se muestran como puntos para que no se encimen.
+const LABEL_MIN_SCALE = 3;
+// Encuadre inicial: la planta baja (donde están todos los sectores con motores).
+const FOCUS = { x0: 3, y0: 3, x1: 41, y1: 50 };
 
 /** Carga public/plano.png y devuelve su proporción; null mientras carga, false si no existe. */
 function usePlanImage() {
@@ -26,14 +30,21 @@ function usePlanImage() {
 export function PlanView() {
   const { motors, setPlanPosition } = useMotors();
   const plan = usePlanImage();
-  const { viewportRef, view, panHandlers, zoomIn, zoomOut, reset } = usePanZoom(plan.aspect);
+  const { viewportRef, view, panHandlers, zoomIn, zoomOut, reset } = usePanZoom(plan.aspect, FOCUS);
   const stageRef = useRef(null);
   const dragRef = useRef(null);
   const [dragPos, setDragPos] = useState(null); // { id, x, y }
   const [selectedId, setSelectedId] = useState(null);
   const [sector, setSector] = useState(ALL);
 
-  const visible = useMemo(() => (sector === ALL ? motors : motors.filter((m) => m.location === sector)), [motors, sector]);
+  const plantMotors = useMemo(() => motors.filter((m) => m.location === PLANT), [motors]);
+  const visible = useMemo(() => (sector === ALL ? plantMotors : plantMotors.filter((m) => m.sector === sector)), [plantMotors, sector]);
+  const sectorCounts = useMemo(() => {
+    const counts = new Map();
+    plantMotors.forEach((m) => counts.set(m.sector, (counts.get(m.sector) ?? 0) + 1));
+    return counts;
+  }, [plantMotors]);
+  const showLabels = view.scale >= LABEL_MIN_SCALE;
   const selected = motors.find((m) => m.id === selectedId) ?? null; // si se borra, el panel se cierra solo
 
   const toPercent = (clientX, clientY) => {
@@ -78,16 +89,18 @@ export function PlanView() {
         <div>
           <h2 className="text-base font-bold text-slate-900">Lay out Planta Papel · Cartocor Arroyito</h2>
           <p className="text-xs text-slate-500">
-            Arrastrá un motor para ubicarlo · clic para ver su ficha · rueda del mouse para zoom · arrastrá el fondo para moverte
+            {plantMotors.length} motores en planta · arrastrá un motor para ubicarlo · clic para ver su ficha · rueda del mouse
+            para zoom (con más zoom se ven los códigos)
           </p>
         </div>
         <div className="flex items-center gap-3">
           <label className="flex items-center gap-2 text-xs">
             <span className="font-medium text-slate-600">Sector:</span>
             <select value={sector} onChange={(e) => setSector(e.target.value)} className="input w-auto">
-              {[ALL, ...LOCATIONS].map((l) => (
-                <option key={l} value={l}>
-                  {l === ALL ? 'Todo el predio' : l}
+              <option value={ALL}>Todos los sectores</option>
+              {SECTORS.filter((s) => sectorCounts.has(s.id)).map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.label} ({sectorCounts.get(s.id)})
                 </option>
               ))}
             </select>
@@ -124,6 +137,20 @@ export function PlanView() {
             <FallbackSchematic missing={plan.status === 'missing'} />
           )}
 
+          {SECTORS.filter((s) => sectorCounts.has(s.id) && (sector === ALL || sector === s.id)).map((s) => {
+            // El rótulo va justo arriba del grupo de motores del sector (radio de la espiral).
+            const radiusY = SPIRAL_SPACING * Math.sqrt(sectorCounts.get(s.id)) * PLAN_ASPECT * sectorSpread(s.id).y;
+            return (
+              <div
+                key={s.id}
+                style={{ left: `${s.anchor.x}%`, top: `${s.anchor.y - radiusY - 0.8}%`, transform: `translate(-50%, -100%) scale(${1 / view.scale})` }}
+                className="pointer-events-none absolute z-30 origin-bottom rounded-md bg-slate-900/85 px-2 py-0.5 text-[11px] font-bold whitespace-nowrap text-white"
+              >
+                {s.short} · {sectorCounts.get(s.id)}
+              </div>
+            );
+          })}
+
           {visible.map((motor) => {
             const style = conditionStyle(motor.condition);
             const pos = dragPos?.id === motor.id ? dragPos : motor;
@@ -134,17 +161,24 @@ export function PlanView() {
                 {...pinHandlers(motor)}
                 style={{ left: `${pos.x}%`, top: `${pos.y}%`, transform: `translate(-50%, -50%) scale(${1 / view.scale})` }}
                 className={`absolute z-20 cursor-grab touch-none active:cursor-grabbing ${isSelected ? 'z-30' : ''}`}
-                title={`${motor.tag} · ${motor.condition}`}
+                title={`${motor.tag} · ${motor.description || ''} · ${motor.condition}`}
               >
-                <div
-                  className={`flex items-center gap-1.5 rounded-xl border px-2.5 py-1 whitespace-nowrap shadow-lg transition-colors ${style.border} ${
-                    isSelected ? 'bg-slate-900 text-white ring-2 ring-emerald-500' : 'bg-white text-slate-900 hover:bg-slate-50'
-                  }`}
-                >
-                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: style.hex }} />
-                  <span className="font-mono text-xs font-bold">{motor.tag}</span>
-                  {motor.power && <span className={`hidden text-[10px] sm:inline ${isSelected ? 'text-slate-300' : 'text-slate-500'}`}>({motor.power})</span>}
-                </div>
+                {showLabels || isSelected ? (
+                  <div
+                    className={`flex items-center gap-1.5 rounded-xl border px-2.5 py-1 whitespace-nowrap shadow-lg transition-colors ${style.border} ${
+                      isSelected ? 'bg-slate-900 text-white ring-2 ring-emerald-500' : 'bg-white text-slate-900 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: style.hex }} />
+                    <span className="font-mono text-xs font-bold">{motor.tag}</span>
+                    {motor.power && <span className={`hidden text-[10px] sm:inline ${isSelected ? 'text-slate-300' : 'text-slate-500'}`}>({motor.power})</span>}
+                  </div>
+                ) : (
+                  <span
+                    className="block h-3 w-3 rounded-full border-2 border-white shadow ring-1 ring-slate-400 transition-transform hover:scale-150"
+                    style={{ backgroundColor: style.hex }}
+                  />
+                )}
               </div>
             );
           })}
@@ -169,7 +203,10 @@ function MotorDetailPanel({ motor, onClose }) {
           <h3 className="mt-1 text-sm font-bold">
             {motor.power || '—'} · {motor.rpm ? `${motor.rpm} RPM` : '—'}
           </h3>
-          {motor.palletNum && <p className="text-[11px] font-semibold text-emerald-700">{formatSlot(motor.palletNum)}</p>}
+          <p className="text-[11px] font-semibold text-emerald-700">
+            {sectorLabel(motor.sector)}
+            {motor.panel ? ` · ${motor.panel}` : ''}
+          </p>
         </div>
         <button type="button" onClick={onClose} className="rounded-lg p-1 font-bold text-slate-400 hover:bg-slate-100 hover:text-slate-900" aria-label="Cerrar">
           ✕

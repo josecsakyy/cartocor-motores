@@ -62,10 +62,14 @@ async function init() {
       return setDoc(doc(motorsRef, motor.id), toStorage(motor));
     },
 
-    async saveMany(motors) {
-      for (let i = 0; i < motors.length; i += BATCH_LIMIT) {
+    /** Guarda y borra en lotes: se usa para importar un Excel completo. */
+    async applyChanges({ save = [], remove = [] }) {
+      const ops = [...save.map((m) => ['set', m]), ...remove.map((id) => ['delete', id])];
+      for (let i = 0; i < ops.length; i += BATCH_LIMIT) {
         const batch = writeBatch(db);
-        motors.slice(i, i + BATCH_LIMIT).forEach((m) => batch.set(doc(motorsRef, m.id), toStorage(m)));
+        ops.slice(i, i + BATCH_LIMIT).forEach(([op, value]) =>
+          op === 'set' ? batch.set(doc(motorsRef, value.id), toStorage(value)) : batch.delete(doc(motorsRef, value)),
+        );
         await batch.commit();
       }
     },

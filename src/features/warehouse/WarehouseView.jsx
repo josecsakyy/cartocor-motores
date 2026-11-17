@@ -35,6 +35,15 @@ export function WarehouseView() {
         </div>
       </div>
 
+      {(byPallet.get(null)?.length ?? 0) > 0 && (
+        <section className="card p-4">
+          <h3 className="mb-2 text-sm font-bold text-slate-900">
+            En depósito sin tarima asignada ({byPallet.get(null).length}) · arrastralos a una tarima para ubicarlos
+          </h3>
+          <PalletCell number={null} motors={byPallet.get(null)} onMove={movePallet} wide />
+        </section>
+      )}
+
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
         {RACKS.map((rack, r) => {
           const rackCount = FLOORS.flatMap((_, f) => PALLETS.map((_, p) => byPallet.get(palletNumberOf(r, f, p)) ?? [])).flat().length;
@@ -69,7 +78,7 @@ export function WarehouseView() {
 
 const DRAG_TYPE = 'application/x-cartocor-motor';
 
-function PalletCell({ number, motors, onMove }) {
+function PalletCell({ number, motors, onMove, wide = false }) {
   const { openEdit } = useMotorDialogs();
   const [isOver, setIsOver] = useState(false);
 
@@ -99,10 +108,16 @@ function PalletCell({ number, motors, onMove }) {
       }`}
     >
       <div className="mb-1 flex items-center justify-between rounded bg-slate-200/60 px-1.5 py-0.5 text-[10px] font-bold text-slate-600">
-        <span>Tarima #{number}</span>
+        <span>{number ? `Tarima #${number}` : 'Sin tarima'}</span>
         {motors.length > 0 && <span className="rounded bg-emerald-600 px-1.5 text-[9px] font-black text-white">{motors.length}</span>}
       </div>
-      <div className="flex max-h-[180px] flex-col gap-1.5 overflow-y-auto">
+      <div
+        className={
+          wide
+            ? 'grid max-h-[320px] grid-cols-2 gap-1.5 overflow-y-auto sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8'
+            : 'flex max-h-[180px] flex-col gap-1.5 overflow-y-auto'
+        }
+      >
         {motors.length === 0 ? (
           <div className="py-2 text-center text-[10px] text-slate-300 italic">Vacía</div>
         ) : (
@@ -125,7 +140,9 @@ function PalletCell({ number, motors, onMove }) {
                   </button>
                   <span className="h-2 w-2 rounded-full" style={{ backgroundColor: style.hex }} title={motor.condition} />
                 </div>
-                <div className="truncate text-[10px] text-slate-500">{motor.power}</div>
+                <div className="truncate text-[10px] text-slate-500" title={motor.description}>
+                  {[motor.power, motor.brand].filter(Boolean).join(' · ') || '—'}
+                </div>
                 <div className="space-y-1 border-t border-slate-100 pt-1">
                   <PalletSelect
                     short

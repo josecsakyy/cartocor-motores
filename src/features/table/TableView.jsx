@@ -1,20 +1,22 @@
 import { useMemo } from 'react';
 import { ConditionSelect, LocationSelect } from '../../components/ui/Selects';
-import { CONDITIONS, DEPOT, LOCATIONS, PENDING_CONDITIONS, conditionStyle } from '../../domain/constants';
+import { CONDITIONS, DEPOT, LOCATIONS, PENDING_CONDITIONS, PLANT, conditionStyle } from '../../domain/constants';
 import { searchableText } from '../../domain/motor';
 import { formatSlot } from '../../domain/warehouse';
+import { SECTORS, sectorLabel } from '../../domain/sectors';
 import { useMotors } from '../../store/MotorsProvider';
 import { MotorActions } from '../motors/MotorActions';
 
 export const ALL = 'Todas';
 export const PENDING = 'Pendientes';
 
-export const filterMotors = (motors, { search, location, condition }) => {
+export const filterMotors = (motors, { search, location, condition, sector = ALL }) => {
   const term = search.trim().toLowerCase();
   return motors.filter(
     (m) =>
       (!term || searchableText(m).includes(term)) &&
       (location === ALL || m.location === location) &&
+      (sector === ALL || (m.location === PLANT && m.sector === sector)) &&
       (condition === ALL || (condition === PENDING ? PENDING_CONDITIONS.includes(m.condition) : m.condition === condition)),
   );
 };
@@ -36,6 +38,13 @@ export function TableView({ filters, onFiltersChange }) {
             className="input min-w-[240px] flex-1 bg-white"
           />
           <FilterSelect label="Ubicación" value={filters.location} onChange={setFilter('location')} options={[ALL, ...LOCATIONS]} />
+          <FilterSelect
+            label="Sector"
+            value={filters.sector ?? ALL}
+            onChange={setFilter('sector')}
+            options={[ALL, ...SECTORS.map((s) => s.id)]}
+            format={(o) => (o === ALL ? ALL : sectorLabel(o))}
+          />
           <FilterSelect label="Condición" value={filters.condition} onChange={setFilter('condition')} options={[ALL, PENDING, ...CONDITIONS]} />
         </div>
         <div className="text-xs font-medium text-slate-500">
@@ -47,7 +56,7 @@ export function TableView({ filters, onFiltersChange }) {
         <table className="w-full border-collapse text-left text-sm">
           <thead>
             <tr className="sticky top-0 z-10 bg-slate-900 text-xs tracking-wider text-white uppercase">
-              {['Tag / Código', 'Potencia', 'RPM', 'Ubicación', 'Tarima depósito', 'Condición', 'Descripción'].map((h) => (
+              {['Código', 'Potencia', 'RPM', 'Ubicación', 'Sector / tarima', 'Condición', 'Equipo'].map((h) => (
                 <th key={h} className="px-4 py-3.5 font-semibold">
                   {h}
                 </th>
@@ -92,8 +101,13 @@ export function TableView({ filters, onFiltersChange }) {
                         <span className="inline-flex rounded-md border border-emerald-300 bg-white px-2.5 py-1 text-xs font-bold text-emerald-900">
                           {formatSlot(motor.palletNum)}
                         </span>
+                      ) : motor.location === PLANT ? (
+                        <div className="text-xs">
+                          <div className="font-bold text-slate-800">{sectorLabel(motor.sector)}</div>
+                          {motor.panel && <div className="text-[11px] text-slate-500">{motor.panel}</div>}
+                        </div>
                       ) : (
-                        <span className="text-xs text-slate-400 italic">En planta</span>
+                        <span className="text-xs text-slate-400 italic">{motor.location}</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
@@ -103,8 +117,9 @@ export function TableView({ filters, onFiltersChange }) {
                         className={`cursor-pointer rounded-xl border px-3 py-1.5 text-xs font-bold ${style.badge}`}
                       />
                     </td>
-                    <td className="max-w-xs truncate px-4 py-3 text-xs text-slate-600" title={motor.description}>
-                      {motor.description || 'Sin descripción'}
+                    <td className="max-w-xs px-4 py-3 text-xs text-slate-600" title={[motor.description, motor.notes].filter(Boolean).join(' · ')}>
+                      <div className="truncate">{motor.description || 'Sin descripción'}</div>
+                      {motor.notes && <div className="truncate text-[11px] text-slate-400">{motor.notes}</div>}
                     </td>
                     <td className="px-4 py-3">
                       <MotorActions motor={motor} />
@@ -120,14 +135,14 @@ export function TableView({ filters, onFiltersChange }) {
   );
 }
 
-function FilterSelect({ label, value, onChange, options }) {
+function FilterSelect({ label, value, onChange, options, format = (o) => o }) {
   return (
     <label className="flex items-center gap-2">
       <span className="text-xs font-semibold text-slate-600">{label}:</span>
       <select value={value} onChange={(e) => onChange(e.target.value)} className="input w-auto bg-white">
         {options.map((o) => (
           <option key={o} value={o}>
-            {o}
+            {format(o)}
           </option>
         ))}
       </select>

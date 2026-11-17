@@ -8,7 +8,7 @@ const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
  * El "stage" ocupa el ancho del visor con escala 1; `fit` es la escala
  * que hace entrar el plano completo en el visor.
  */
-export function usePanZoom(aspectRatio) {
+export function usePanZoom(aspectRatio, focus) {
   const viewportRef = useRef(null);
   const [view, setView] = useState({ scale: 1, x: 0, y: 0 });
   const [fit, setFit] = useState(1);
@@ -19,15 +19,23 @@ export function usePanZoom(aspectRatio) {
     if (!vp || !aspectRatio) return null;
     const { width, height } = vp.getBoundingClientRect();
     const stageHeight = width / aspectRatio;
-    const scale = Math.min(1, height / stageHeight);
-    return { scale, x: (width - width * scale) / 2, y: (height - stageHeight * scale) / 2 };
-  }, [aspectRatio]);
+    const whole = Math.min(1, height / stageHeight);
+    if (!focus) return { min: whole, view: { scale: whole, x: (width - width * whole) / 2, y: (height - stageHeight * whole) / 2 } };
+    // Encuadre inicial: la zona `focus` (en % del plano) ocupa el visor.
+    const fw = ((focus.x1 - focus.x0) / 100) * width;
+    const fh = ((focus.y1 - focus.y0) / 100) * stageHeight;
+    const scale = clamp(Math.min(width / fw, height / fh) * 0.96, whole, MAX_SCALE);
+    const cx = (((focus.x0 + focus.x1) / 2) / 100) * width;
+    const cy = (((focus.y0 + focus.y1) / 2) / 100) * stageHeight;
+    // Sin dejar margen vacío a la izquierda ni arriba del plano.
+    return { min: whole, view: { scale, x: Math.min(0, width / 2 - cx * scale), y: Math.min(0, height / 2 - cy * scale) } };
+  }, [aspectRatio, focus]);
 
   const reset = useCallback(() => {
     const f = computeFit();
     if (!f) return;
-    setFit(f.scale);
-    setView(f);
+    setFit(f.min);
+    setView(f.view);
   }, [computeFit]);
 
   useEffect(() => {

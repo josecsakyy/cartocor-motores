@@ -51,9 +51,10 @@ export function createLocalRepository() {
       write(motors);
     },
 
-    async saveMany(changed) {
+    async applyChanges({ save = [], remove = [] }) {
       const byId = new Map(read().map((m) => [m.id, m]));
-      changed.forEach((m) => byId.set(m.id, m));
+      remove.forEach((id) => byId.delete(id));
+      save.forEach((m) => byId.set(m.id, m));
       write([...byId.values()]);
     },
 

@@ -3,6 +3,7 @@ import { createFirestoreRepository } from '../services/firestoreRepository';
 import { createLocalRepository } from '../services/localRepository';
 import { compareByTag, createHistoryEntry, newId, normalizeMotor, withLocation } from '../domain/motor';
 import { formatSlot } from '../domain/warehouse';
+import { normalizeSector, positionInSector } from '../domain/sectors';
 import { useToast } from '../components/ui/Toast';
 
 const MotorsContext = createContext(null);
@@ -98,15 +99,35 @@ export function MotorsProvider({ children }) {
         motorsRef.current.some((m) => m.id !== exceptId && m.tag.toLowerCase() === tag.trim().toLowerCase()),
 
       createMotor: (data) => {
+        const sector = normalizeSector(data.sector);
+        const inSector = motorsRef.current.filter((m) => m.sector === sector).length;
         const motor = normalizeMotor(
-          { ...data, history: [createHistoryEntry('Registro inicial en sistema', 'Alta de motor en inventario.')] },
+          {
+            ...data,
+            ...positionInSector(sector, inSector),
+            history: [createHistoryEntry('Registro inicial en sistema', 'Alta de motor en inventario.')],
+          },
           newId(),
         );
         return run((repo) => repo.save(motor), `Motor ${motor.tag} registrado`);
       },
 
       editMotor: (id, data) =>
-        update(id, (current) => ({ ...current, ...data, id, history: current.history }), null, 'Cambios guardados'),
+        update(
+          id,
+          (current) => {
+            const next = { ...current, ...data, id, history: current.history };
+            const sector = normalizeSector(next.sector);
+            if (sector !== current.sector) {
+              // Si cambia de sector, se ubica en el plano dentro del sector nuevo.
+              const inSector = motorsRef.current.filter((m) => m.sector === sector).length;
+              Object.assign(next, positionInSector(sector, inSector));
+            }
+            return next;
+          },
+          null,
+          'Cambios guardados',
+        ),
 
       deleteMotor: (id) => {
         const motor = motorsRef.current.find((m) => m.id === id);
@@ -124,7 +145,7 @@ export function MotorsProvider({ children }) {
           id,
           (m) => withLocation(m, m.location, palletNum),
           `Reubicado en ${formatSlot(palletNum)}`,
-          `Movido a Tarima #${palletNum}`,
+          palletNum ? `Movido a Tarima #${palletNum}` : 'Movido a "Sin tarima"',
         ),
 
       setPlanPosition: (id, x, y) => update(id, (m) => ({ ...m, x, y }), null, null),
@@ -137,7 +158,8 @@ export function MotorsProvider({ children }) {
           'Evento agregado al historial',
         ),
 
-      saveMany: (list, successMessage) => run((repo) => repo.saveMany(list.map((m) => normalizeMotor(m))), successMessage),
+      applyChanges: ({ save = [], remove = [] }, successMessage) =>
+        run((repo) => repo.applyChanges({ save: save.map((m) => normalizeMotor(m)), remove }), successMessage),
     }),
     [run, update],
   );

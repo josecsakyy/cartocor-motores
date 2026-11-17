@@ -1,20 +1,99 @@
 import * as XLSX from 'xlsx';
-import { DEPOT } from '../../domain/constants';
+import { DEPOT, PLANT } from '../../domain/constants';
 import { createHistoryEntry, newId, normalizeMotor, withLocation } from '../../domain/motor';
+import { normalizeSector, positionInSector, sectorLabel } from '../../domain/sectors';
 import { getSlot, isValidPallet } from '../../domain/warehouse';
+import { parseMasterSheets, isMasterWorkbook } from './masterInventory';
 
 const findColumn = (header, keywords) => header.findIndex((h) => keywords.some((k) => h.includes(k)));
 const cell = (row, idx) => (idx >= 0 && row[idx] !== undefined && row[idx] !== null ? String(row[idx]).trim() : '');
 
-/** Lee todas las hojas del Excel y devuelve filas con los datos de motor que trae cada una. */
-export async function parseMotorsWorkbook(file) {
+/** Lee el Excel: todas las hojas como filas (arrays). */
+export async function readWorkbook(file) {
   const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+  return Object.fromEntries(
+    workbook.SheetNames.map((name) => [name, XLSX.utils.sheet_to_json(workbook.Sheets[name], { header: 1, blankrows: false, defval: null })]),
+  );
+}
+
+/**
+ * Arma el reporte de importación.
+ * - Inventario maestro (hojas "Puestos en Planta", "Repuestos Depósito", "En Reparación"):
+ *   reemplaza la base completa; los motores que ya existen (mismo código) conservan su historial y su posición.
+ * - Cualquier otro Excel: agrega los motores nuevos y actualiza los existentes.
+ */
+export function buildImportReport(sheets, motors) {
+  if (isMasterWorkbook(sheets)) return buildMasterReport(parseMasterSheets(sheets), motors);
+  return buildGenericReport(parseGenericSheets(sheets), motors);
+}
+
+function buildMasterReport(parsed, motors) {
+  const byTag = new Map(motors.map((m) => [m.tag.toLowerCase(), m]));
+  const sectorIndex = new Map();
+  const keepIds = new Set();
+  const newMotors = [];
+  const changes = [];
+  let unchanged = 0;
+
+  parsed.forEach((row) => {
+    const existing = byTag.get(row.tag.toLowerCase());
+    if (!existing) {
+      const n = sectorIndex.get(row.sector) ?? 0;
+      sectorIndex.set(row.sector, n + 1);
+      newMotors.push(
+        normalizeMotor(
+          {
+            ...row,
+            ...(row.location === PLANT ? positionInSector(normalizeSector(row.sector), n) : { x: 50, y: 50 }),
+            history: [createHistoryEntry(`Importado desde inventario maestro (${row.sheetName})`, 'Carga masiva.', 'Sistema')],
+          },
+          newId(),
+        ),
+      );
+      return;
+    }
+    keepIds.add(existing.id);
+    const merged = normalizeMotor({ ...existing, ...row, id: existing.id, history: existing.history, x: existing.x, y: existing.y });
+    if (merged.location === PLANT && merged.sector !== existing.sector) {
+      const n = sectorIndex.get(merged.sector) ?? 0;
+      sectorIndex.set(merged.sector, n + 1);
+      Object.assign(merged, positionInSector(merged.sector, n + 200));
+    }
+    const fields = ['code', 'description', 'power', 'rpm', 'brand', 'frame', 'location', 'sector', 'panel', 'palletNum', 'condition', 'notes'].filter(
+      (f) => (merged[f] ?? '') !== (existing[f] ?? ''),
+    );
+    if (fields.length === 0 && JSON.stringify(merged.details) === JSON.stringify(existing.details)) {
+      unchanged += 1;
+      return;
+    }
+    merged.history = [
+      createHistoryEntry('Actualizado desde inventario maestro', `Campos modificados: ${fields.join(', ') || 'datos técnicos'}.`, 'Sistema'),
+      ...existing.history,
+    ];
+    changes.push({ before: existing, after: merged, fields: fields.length ? fields : ['datos técnicos'] });
+  });
+
+  const removed = motors.filter((m) => !keepIds.has(m.id));
+  return { mode: 'replace', total: parsed.length, newMotors, changes, unchanged, duplicates: 0, removed, summary: summarize(parsed) };
+}
+
+function summarize(parsed) {
+  const count = (pred) => parsed.filter(pred).length;
+  const bySector = new Map();
+  parsed.filter((m) => m.location === PLANT).forEach((m) => bySector.set(m.sector, (bySector.get(m.sector) ?? 0) + 1));
+  return {
+    plant: count((m) => m.location === PLANT),
+    depot: count((m) => m.location === DEPOT && m.condition !== 'En reparación'),
+    repair: count((m) => m.condition === 'En reparación'),
+    sectors: [...bySector.entries()].sort((a, b) => b[1] - a[1]).map(([id, n]) => `${sectorLabel(id)}: ${n}`),
+  };
+}
+
+/** Formato libre (versión anterior): una fila por motor, columnas reconocidas por nombre. */
+function parseGenericSheets(sheets) {
   const rows = [];
-
-  workbook.SheetNames.forEach((sheetName) => {
-    const data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1, blankrows: false });
+  Object.entries(sheets).forEach(([sheetName, data]) => {
     if (data.length < 2) return;
-
     const header = data[0].map((h) => String(h ?? '').trim().toUpperCase());
     const col = {
       tag: findColumn(header, ['TAG', 'NRO', 'NUMERO', 'NÚMERO']),
@@ -30,36 +109,27 @@ export async function parseMotorsWorkbook(file) {
       const description = cell(row, col.description);
       const powerRaw = cell(row, col.power);
       if (!description && !powerRaw) return;
-
       const palletRaw = cell(row, col.pallet);
       const palletNum = isValidPallet(palletRaw) ? Number(palletRaw) : null;
       const tagRaw = cell(row, col.tag);
-
       rows.push({
         sheetName,
         tag: tagRaw ? (/^MOT/i.test(tagRaw) ? tagRaw.toUpperCase() : `MOT-${tagRaw}`) : '',
         code: cell(row, col.code),
         description,
-        power: powerRaw ? (/hp|kw/i.test(powerRaw) ? powerRaw : `${powerRaw} HP`) : '',
+        power: powerRaw ? (/hp|kw|cv/i.test(powerRaw) ? powerRaw : `${powerRaw} HP`) : '',
         rpm: cell(row, col.rpm),
         location: palletNum || isSpareSheet ? DEPOT : null,
         palletNum,
       });
     });
   });
-
   return rows;
 }
 
 const SPEC_FIELDS = ['code', 'description', 'power', 'rpm'];
 
-/**
- * Contrasta las filas del Excel con la base actual.
- * - nuevos: motores que no existen (por tag o código).
- * - cambios: motores existentes con algún dato distinto. Se actualizan solo los
- *   datos que trae el Excel; el historial, la condición y la posición en el plano se conservan.
- */
-export function buildImportReport(rows, motors) {
+function buildGenericReport(rows, motors) {
   const byTag = new Map(motors.map((m) => [m.tag.toLowerCase(), m]));
   const byCode = new Map(motors.filter((m) => m.code).map((m) => [m.code.toLowerCase(), m]));
   const seen = new Set();
@@ -92,10 +162,9 @@ export function buildImportReport(rows, motors) {
           {
             ...row,
             tag,
-            location: row.location ?? 'Sala de Máquina',
+            location: row.location ?? PLANT,
             description: row.description || `Importado de hoja ${row.sheetName}`,
-            x: 50,
-            y: 50,
+            ...positionInSector('SIN SECTOR', newMotors.length),
             history: [createHistoryEntry(`Importado desde Excel (${row.sheetName})`, 'Carga masiva.', 'Sistema')],
           },
           newId(),
@@ -121,29 +190,35 @@ export function buildImportReport(rows, motors) {
     changes.push({ before: existing, after: updated, fields });
   });
 
-  return { total: rows.length, newMotors, changes, unchanged, duplicates };
+  return { mode: 'merge', total: rows.length, newMotors, changes, unchanged, duplicates, removed: [] };
 }
 
 export function exportMotorsToExcel(motors) {
   const inventory = motors.map((m) => {
     const slot = getSlot(m.palletNum);
     return {
-      Tag: m.tag,
-      'Código interno': m.code,
+      Código: m.tag,
+      'Código SIMP': m.code,
+      Equipo: m.description,
       Potencia: m.power,
       RPM: m.rpm,
-      'Carcasa / brida': m.flange,
+      Marca: m.brand,
+      Carcasa: m.frame,
+      Montaje: m.flange,
       Ubicación: m.location,
+      Sector: m.location === PLANT ? sectorLabel(m.sector) : '',
+      Tablero: m.panel,
       Tarima: slot?.number ?? '',
       Rack: slot?.rack ?? '',
       Piso: slot?.floor ?? '',
       Condición: m.condition,
-      Descripción: m.description,
+      Observaciones: m.notes,
       'Eventos en historial': m.history.length,
+      ...m.details,
     };
   });
   const history = motors.flatMap((m) =>
-    m.history.map((h) => ({ Tag: m.tag, Fecha: h.date, Acción: h.action, Observaciones: h.notes, 'Registrado por': h.user })),
+    m.history.map((h) => ({ Código: m.tag, Fecha: h.date, Acción: h.action, Observaciones: h.notes, 'Registrado por': h.user })),
   );
 
   const workbook = XLSX.utils.book_new();
@@ -151,3 +226,4 @@ export function exportMotorsToExcel(motors) {
   XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(history), 'Historial');
   XLSX.writeFile(workbook, 'Inventario_Motores_Cartocor_Arroyito.xlsx');
 }
+
