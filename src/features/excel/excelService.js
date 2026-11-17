@@ -2,7 +2,7 @@ import * as XLSX from 'xlsx';
 import { DEPOT, PLANT } from '../../domain/constants';
 import { createHistoryEntry, newId, normalizeMotor, withLocation } from '../../domain/motor';
 import { normalizeSector, positionInSector, sectorLabel } from '../../domain/sectors';
-import { getSlot, isValidPallet } from '../../domain/warehouse';
+import { isValidPallet } from '../../domain/warehouse';
 import { parseMasterSheets, isMasterWorkbook } from './masterInventory';
 
 const findColumn = (header, keywords) => header.findIndex((h) => keywords.some((k) => h.includes(k)));
@@ -98,7 +98,7 @@ function parseGenericSheets(sheets) {
     const col = {
       tag: findColumn(header, ['TAG', 'NRO', 'NUMERO', 'NÚMERO']),
       code: findColumn(header, ['CODIGO', 'CÓDIGO', 'COD']),
-      description: findColumn(header, ['DESCRIPCION', 'DESCRIPCIÓN', 'OBSERVACION', 'OBSERVACIÓN', 'UBICACION', 'UBICACIÓN']),
+      description: findColumn(header, ['EQUIPO', 'DESCRIPCION', 'DESCRIPCIÓN', 'OBSERVACION', 'OBSERVACIÓN', 'UBICACION', 'UBICACIÓN']),
       power: findColumn(header, ['HP', 'POTENCIA']),
       rpm: findColumn(header, ['RPM', 'R.P.M']),
       pallet: findColumn(header, ['TARIMA']),
@@ -192,38 +192,3 @@ function buildGenericReport(rows, motors) {
 
   return { mode: 'merge', total: rows.length, newMotors, changes, unchanged, duplicates, removed: [] };
 }
-
-export function exportMotorsToExcel(motors) {
-  const inventory = motors.map((m) => {
-    const slot = getSlot(m.palletNum);
-    return {
-      Código: m.tag,
-      'Código SIMP': m.code,
-      Equipo: m.description,
-      Potencia: m.power,
-      RPM: m.rpm,
-      Marca: m.brand,
-      Carcasa: m.frame,
-      Montaje: m.flange,
-      Ubicación: m.location,
-      Sector: m.location === PLANT ? sectorLabel(m.sector) : '',
-      Tablero: m.panel,
-      Tarima: slot?.number ?? '',
-      Rack: slot?.rack ?? '',
-      Piso: slot?.floor ?? '',
-      Condición: m.condition,
-      Observaciones: m.notes,
-      'Eventos en historial': m.history.length,
-      ...m.details,
-    };
-  });
-  const history = motors.flatMap((m) =>
-    m.history.map((h) => ({ Código: m.tag, Fecha: h.date, Acción: h.action, Observaciones: h.notes, 'Registrado por': h.user })),
-  );
-
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(inventory), 'Inventario Motores');
-  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(history), 'Historial');
-  XLSX.writeFile(workbook, 'Inventario_Motores_Cartocor_Arroyito.xlsx');
-}
-
