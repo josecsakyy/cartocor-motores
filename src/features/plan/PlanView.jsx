@@ -229,7 +229,7 @@ function MotorDetailPanel({ motor, onClose }) {
         </label>
         <label className="flex items-center justify-between gap-3">
           <span className="text-slate-500">Condición:</span>
-          <ConditionSelect value={motor.condition} onChange={(c) => changeCondition(motor.id, c)} className="input w-44 py-1 text-xs font-semibold" />
+          <ConditionSelect value={motor.condition} location={motor.location} onChange={(c) => changeCondition(motor.id, c)} className="input w-44 py-1 text-xs font-semibold" />
         </label>
       </div>
       <MotorActions motor={motor} />
