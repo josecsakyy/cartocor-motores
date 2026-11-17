@@ -126,3 +126,23 @@ export const searchableText = (m) =>
     .toLowerCase();
 
 export const compareByTag = (a, b) => a.tag.localeCompare(b.tag, 'es', { numeric: true });
+
+/**
+ * Potencia en kW: la del dato "kW" del inventario si está cargada; si no,
+ * se calcula desde la potencia (1 HP = 0,7457 kW · 1 CV = 0,7355 kW).
+ */
+export const powerKw = (m) => {
+  const match = /^\s*([\d.,]+)\s*(HP|CV)\b/i.exec(m?.power ?? '');
+  const nominal = match && !(m.power ?? '').includes('/') ? Number(match[1].replace(',', '.')) * (match[2].toUpperCase() === 'HP' ? 0.7457 : 0.7355) : null;
+  const fromDetails = Number(String(m?.details?.kW ?? '').replace(',', '.'));
+  const detail = Number.isFinite(fromDetails) && fromDetails > 0 ? fromDetails : null;
+  // Si el dato del inventario no coincide con la potencia (error de carga), manda la potencia.
+  let kw = detail;
+  if (nominal && (!detail || Math.abs(detail - nominal) / nominal > 0.3)) kw = nominal;
+  if (!kw || !Number.isFinite(kw)) return '';
+  const rounded = kw < 1 ? Math.round(kw * 100) / 100 : Math.round(kw * 10) / 10;
+  return `${String(rounded).replace('.', ',')} kW`;
+};
+
+/** "30 HP · 22,4 kW" */
+export const powerLabel = (m) => [m?.power, powerKw(m)].filter(Boolean).join(' · ');
