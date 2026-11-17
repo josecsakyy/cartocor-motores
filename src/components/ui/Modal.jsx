@@ -1,12 +1,23 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+
+// Pila de ventanas abiertas: Escape cierra solo la de arriba.
+const openStack = [];
 
 /** Ventana modal base: cierra con Escape o clic en el fondo. */
 export function Modal({ title, subtitle, onClose, children, footer, size = 'max-w-lg', dark = false }) {
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+
   useEffect(() => {
-    const onKey = (e) => e.key === 'Escape' && onClose();
+    const token = {};
+    openStack.push(token);
+    const onKey = (e) => e.key === 'Escape' && openStack.at(-1) === token && closeRef.current();
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      openStack.splice(openStack.indexOf(token), 1);
+    };
+  }, []);
 
   return (
     <div
