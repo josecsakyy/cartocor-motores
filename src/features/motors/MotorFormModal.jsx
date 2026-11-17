@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Modal } from '../../components/ui/Modal';
 import { ConditionSelect, LocationSelect, PalletSelect, SectorSelect } from '../../components/ui/Selects';
 import { CONDITIONS, DEPOT, FLANGES, PLANT } from '../../domain/constants';
-import { nextTag, withLocation } from '../../domain/motor';
+import { conditionFor, nextTag, withLocation } from '../../domain/motor';
 import { DEFAULT_SECTOR } from '../../domain/sectors';
 import { useMotors } from '../../store/MotorsProvider';
 
@@ -56,7 +56,7 @@ export function MotorFormModal({ motor, onClose }) {
   const input = (field, props = {}) => (
     <input className="input" value={form[field] ?? ''} onChange={(e) => set(field)(e.target.value)} {...props} />
   );
-  const setLocation = (location) => setForm((f) => withLocation(f, location));
+  const setLocation = (location) => setForm((f) => ({ ...withLocation(f, location), condition: conditionFor(location, f.condition) }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -96,7 +96,7 @@ export function MotorFormModal({ motor, onClose }) {
             </select>
           </Field>
           <Field label="Condición">
-            <ConditionSelect value={form.condition} onChange={set('condition')} />
+            <ConditionSelect value={form.condition} location={form.location} onChange={set('condition')} />
           </Field>
         </div>
 
