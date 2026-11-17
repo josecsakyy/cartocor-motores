@@ -1,5 +1,5 @@
 import { DEPOT, PENDING_CONDITIONS, PLANT, REPAIR_SHOP } from '../../domain/constants';
-import { compareByTag, todayISO } from '../../domain/motor';
+import { compareByTag, powerKw, todayISO } from '../../domain/motor';
 import { SECTORS, sectorLabel } from '../../domain/sectors';
 import { getSlot } from '../../domain/warehouse';
 import { buildXlsx, colName, downloadBlob } from './xlsxWriter';
@@ -9,17 +9,20 @@ const CHECKED = '☑';
 const COLUMNS = [
   { title: '✔', width: 5 },
   { title: 'Código', width: 13 },
-  { title: 'Equipo / observación', width: 44 },
+  { title: 'Equipo / observación', width: 38 },
   { title: 'Potencia', width: 10 },
+  { title: 'kW', width: 9 },
   { title: 'RPM', width: 9 },
-  { title: 'Marca', width: 13 },
-  { title: 'Carcasa', width: 12 },
+  { title: 'Marca', width: 12 },
+  { title: 'Carcasa', width: 11 },
   { title: 'Brida', width: 10 },
-  { title: 'Condición', width: 17 },
-  { title: 'Ubicación', width: 36 },
-  { title: 'Observaciones del control', width: 30 },
+  { title: 'Rodamientos (del. / tras.)', width: 22 },
+  { title: 'Condición', width: 16 },
+  { title: 'Ubicación', width: 30 },
+  { title: 'Observaciones del control', width: 28 },
 ];
-const LAST_COL = 'K';
+const LAST_COL = 'M';
+const SPAN = COLUMNS.length - 1;
 
 /** Alcances que se pueden descargar. */
 export const EXPORT_SCOPES = [
@@ -110,6 +113,12 @@ const locationText = (m) => {
   return 'Taller de mantenimiento';
 };
 
+const bearings = (m) => {
+  const front = m.details?.['Rodamiento delantero'] ?? '';
+  const rear = m.details?.['Rodamiento trasero'] ?? '';
+  return front || rear ? `${front || '—'} / ${rear || '—'}` : '';
+};
+
 const conditionStyle = (c) => (c === 'No operativo' || c === 'Retirado' ? 'bad' : PENDING_CONDITIONS.includes(c) ? 'warn' : 'text');
 
 const formatDate = (iso) => iso.split('-').reverse().join('/');
@@ -137,6 +146,8 @@ function checklistSheet(list, options) {
       { v: '', s: 'signature' },
       { v: '', s: 'signature' },
       { v: '', s: 'signature' },
+      { v: '', s: 'signature' },
+      { v: '', s: 'signature' },
       { v: `Marcar ${CHECKED} cada motor verificado`, s: 'subtitle' },
     ],
   });
@@ -146,11 +157,11 @@ function checklistSheet(list, options) {
 
   let firstData = null;
   groupMotors(list).forEach((section) => {
-    rows.push({ height: 20, cells: [{ v: `${section.title} — ${section.motors.length} motores`, s: 'section' }, ...Array(10).fill({ v: '', s: 'section' })] });
+    rows.push({ height: 20, cells: [{ v: `${section.title} — ${section.motors.length} motores`, s: 'section' }, ...Array(SPAN).fill({ v: '', s: 'section' })] });
     full(rows.length);
     section.groups.forEach((group) => {
       if (group.title) {
-        rows.push({ cells: [{ v: `${group.title} (${group.motors.length})`, s: 'group' }, ...Array(10).fill({ v: '', s: 'group' })] });
+        rows.push({ cells: [{ v: `${group.title} (${group.motors.length})`, s: 'group' }, ...Array(SPAN).fill({ v: '', s: 'group' })] });
         full(rows.length);
       }
       group.motors.forEach((m, i) => {
@@ -162,10 +173,12 @@ function checklistSheet(list, options) {
             { v: m.tag, s: `tag${z}` },
             { v: equipmentText(m), s: `text${z}` },
             { v: m.power, s: `center${z}` },
+            { v: powerKw(m).replace(' kW', ''), s: `center${z}` },
             { v: m.rpm, s: `center${z}` },
             { v: m.brand, s: `text${z}` },
             { v: m.frame, s: `center${z}` },
             { v: m.flange === 'Sin dato' ? '' : m.flange, s: `center${z}` },
+            { v: bearings(m), s: `center${z}` },
             { v: m.condition, s: `${conditionStyle(m.condition)}${z}` },
             { v: locationText(m), s: `text${z}` },
             { v: '', s: `text${z}` },
@@ -191,8 +204,8 @@ function checklistSheet(list, options) {
 
 /** Hoja plana con todos los datos (sirve también para volver a importar). */
 function dataSheet(list) {
-  const detailKeys = [...new Set(list.flatMap((m) => Object.keys(m.details ?? {})))].sort((a, b) => a.localeCompare(b, 'es'));
-  const head = ['Código', 'Código SIMP', 'Equipo', 'Potencia', 'RPM', 'Marca', 'Carcasa', 'Montaje', 'Ubicación', 'Sector', 'Tablero', 'Tarima', 'Rack', 'Piso', 'Condición', 'Observaciones', ...detailKeys];
+  const detailKeys = [...new Set(list.flatMap((m) => Object.keys(m.details ?? {})))].filter((k) => k !== 'kW').sort((a, b) => a.localeCompare(b, 'es'));
+  const head = ['Código', 'Código SIMP', 'Equipo', 'Potencia', 'kW', 'RPM', 'Marca', 'Carcasa', 'Montaje', 'Ubicación', 'Sector', 'Tablero', 'Tarima', 'Rack', 'Piso', 'Condición', 'Observaciones', ...detailKeys];
   const rows = [{ height: 20, cells: head.map((h) => ({ v: h, s: 'header' })) }];
   [...list].sort(compareByTag).forEach((m, i) => {
     const slot = getSlot(m.palletNum);
@@ -202,6 +215,7 @@ function dataSheet(list) {
       m.code,
       m.description,
       m.power,
+      powerKw(m).replace(' kW', ''),
       m.rpm,
       m.brand,
       m.frame,
@@ -218,7 +232,7 @@ function dataSheet(list) {
     ];
     rows.push({ cells: values.map((v, ci) => ({ v, s: `${ci === 0 ? 'tag' : 'text'}${z}` })) });
   });
-  const widths = [13, 14, 36, 10, 9, 13, 12, 11, 22, 32, 30, 8, 9, 9, 17, 40, ...detailKeys.map(() => 14)];
+  const widths = [13, 14, 36, 10, 9, 9, 13, 12, 11, 22, 32, 30, 8, 9, 9, 17, 40, ...detailKeys.map(() => 14)];
   return {
     name: 'Datos completos',
     columns: widths.map((width) => ({ width })),
