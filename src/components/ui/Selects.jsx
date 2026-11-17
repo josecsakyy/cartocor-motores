@@ -1,4 +1,4 @@
-import { CONDITIONS, LOCATIONS } from '../../domain/constants';
+import { CONDITIONS, LOCATIONS, OPERATIVE, PLANT, RUNNING } from '../../domain/constants';
 import { WAREHOUSE_SLOTS } from '../../domain/warehouse';
 import { SECTORS } from '../../domain/sectors';
 
@@ -14,10 +14,12 @@ export function LocationSelect({ value, onChange, className = 'input', ...props 
   );
 }
 
-export function ConditionSelect({ value, onChange, className = 'input', ...props }) {
+/** Si se indica la ubicación, solo ofrece las condiciones que corresponden ("En funcionamiento" solo en planta). */
+export function ConditionSelect({ value, onChange, location, className = 'input', ...props }) {
+  const options = location ? CONDITIONS.filter((c) => (location === PLANT ? c !== OPERATIVE : c !== RUNNING)) : CONDITIONS;
   return (
     <select value={value} onChange={(e) => onChange(e.target.value)} className={className} {...props}>
-      {CONDITIONS.map((c) => (
+      {options.map((c) => (
         <option key={c} value={c} className="bg-white text-slate-900">
           {c}
         </option>
